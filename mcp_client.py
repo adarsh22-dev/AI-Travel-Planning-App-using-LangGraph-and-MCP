@@ -1,6 +1,7 @@
 import os
 import asyncio
 import json
+from datetime import datetime
 import requests
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
@@ -109,6 +110,70 @@ async def forecast_mcp_search(city: str):
             "weather": item["weather"][0]["description"],
         })
     return {"city": city, "forecast": forecast}
+
+async def _wikipedia_page_image(city: str):
+    UA = {"User-Agent": "AITravelPlanner/1.0"}
+    try:
+        url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{requests.utils.quote(city)}"
+        resp = await asyncio.to_thread(requests.get, url, headers=UA, timeout=10)
+        if resp.status_code != 200:
+            # try with state/country qualifier for smaller cities
+            url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{requests.utils.quote(f'{city} city')}"
+            resp = await asyncio.to_thread(requests.get, url, headers=UA, timeout=10)
+            if resp.status_code != 200:
+                return None, None, None
+        data = resp.json()
+        thumb = (data.get("thumbnail") or {}).get("source")
+        extract = data.get("extract", "")[:200]
+        title = data.get("title", city)
+        return thumb, extract, data.get("pageid")
+    except:
+        return None, None, None
+
+async def _wikipedia_page_images(page_id: int, count: int):
+    UA = {"User-Agent": "AITravelPlanner/1.0"}
+    try:
+        api = "https://en.wikipedia.org/w/api.php"
+        params = {
+            "action": "query",
+            "pageids": page_id,
+            "generator": "images",
+            "gimlimit": count,
+            "prop": "imageinfo",
+            "iiprop": "url",
+            "format": "json",
+        }
+        resp = await asyncio.to_thread(requests.get, api, params=params, headers=UA, timeout=10)
+        data = resp.json()
+        pages = data.get("query", {}).get("pages", {})
+        urls = []
+        for pid, pdata in pages.items():
+            if int(pid) < 0:
+                continue
+            info = pdata.get("imageinfo", [])
+            if info and info[0].get("url", "").lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+                urls.append(info[0]["url"])
+        return urls[:count]
+    except:
+        return []
+
+async def get_destination_photos(city: str, count: int = 6):
+    thumb, extract, page_id = await _wikipedia_page_image(city)
+    photos = []
+    if thumb:
+        photos.append({"src": thumb, "alt": city, "caption": extract[:200] if extract else ""})
+    if page_id:
+        more = await _wikipedia_page_images(page_id, count - 1)
+        for url in more:
+            photos.append({"src": url, "alt": city, "caption": ""})
+    return photos
+
+async def get_destination_events(city: str):
+    try:
+        q = f"Upcoming events and festivals in {city} {datetime.now().year}"
+        return await tavily_mcp_search(q)
+    except:
+        return ""
 
 def get_llm(model_name: str = "llama-3.3-70b-versatile"):
     return ChatGroq(model=model_name)

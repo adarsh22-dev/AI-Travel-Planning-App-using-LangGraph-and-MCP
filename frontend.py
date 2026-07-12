@@ -6,6 +6,11 @@ from datetime import datetime, timedelta
 from langchain_core.messages import HumanMessage
 from fpdf import FPDF
 from main import app
+from mcp_client import get_destination_photos, get_destination_events
+import markdown as _mdlib
+
+def _md(text):
+    return _mdlib.markdown(text or "", extensions=["nl2br"])
 
 st.set_page_config(page_title="AI Travel Planner", page_icon=":airplane:", layout="wide")
 
@@ -333,8 +338,11 @@ div[data-testid="stDownloadButton"]>button:hover{{border-color:{ACCENT}!importan
 .dash-tabs button[aria-selected="true"]{{background:rgba(20,40,70,0.8)!important;border-color:{ACCENT}!important;color:{ACCENT}!important;font-weight:600!important;box-shadow:0 -2px 8px {AGLOW}!important}}
 .dash-tabs [role="tabpanel"]{{background:rgba(14,22,35,0.5)!important;border:1px solid #1e3050!important;border-top:none!important;border-radius:0 0 12px 12px!important;padding:1rem!important}}
 .result-card{{background:rgba(10,21,32,0.6);border:1px solid rgba(30,48,68,0.4);border-radius:12px;padding:1rem;margin-bottom:0.8rem;transition:all 0.2s;overflow-wrap:break-word;word-wrap:break-word;word-break:break-word}}
+.photo-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.8rem}}
+.photo-grid img{{width:100%;height:160px;object-fit:cover;border-radius:10px;border:1px solid rgba(30,48,68,0.5);transition:transform 0.2s}}
+.photo-grid img:hover{{transform:scale(1.03);border-color:{ACCENT}}}
 .result-card:hover{{border-color:{ACCENT};box-shadow:0 4px 16px rgba(0,0,0,0.3)}}
-.result-card h4{{color:{ACCENT};font-size:0.85rem;font-weight:600;margin:0 0 0.4rem;display:flex;align-items:center;gap:0.3rem}}
+.result-card h3,.result-card h4{{color:{ACCENT};font-size:0.9rem;font-weight:600;margin:0.5rem 0 0.3rem}}
 .result-card p,.result-card li{{color:#b0cce8;font-size:0.85rem;line-height:1.6;margin:0.15rem 0}}
 .result-card hr{{border:none;border-top:1px solid rgba(30,48,68,0.3);margin:0.5rem 0}}
 .dash-stat{{flex:1;background:rgba(14,22,35,0.7);backdrop-filter:blur(8px);border:1px solid rgba(30,46,68,0.4);border-radius:12px;padding:0.6rem 0.8rem;text-align:center;transition:0.2s}}
@@ -726,13 +734,30 @@ if lr and not generate:
             st.markdown(f"<div class='dash-stat'><div class='dash-stat-val' style='font-size:{fs};'>{v}</div><div class='dash-stat-lbl'>{ICON(ik,10)} {lb}</div></div>", unsafe_allow_html=True)
 
     tab_pairs = [("Flight", lr_flight), ("Hotel", lr_hotel), ("Weather", lr_weather), ("Itinerary", lr_itin)]
+    dest_city = (lr.get("to_city","") or "").split("(")[0].strip()
+    if dest_city:
+        import asyncio
+        photos = asyncio.run(get_destination_photos(dest_city, 5))
+        if photos:
+            tab_pairs.append(("Photos", photos))
+    tab_pairs.append(("Events", lr.get("events","")))
     active_tabs = [(tl, c) for tl, c in tab_pairs if c]
     if not active_tabs:
         active_tabs = tab_pairs[:1]
     tabs = st.tabs([t[0] for t in active_tabs])
     for ti, (tl, c) in enumerate(active_tabs):
         with tabs[ti]:
-            st.markdown(f"<div class='result-card anim-scale'>{c or '_No data_'}</div>", unsafe_allow_html=True)
+            if tl == "Photos":
+                cols = st.columns(3)
+                for pi, p in enumerate(c):
+                    with cols[pi % 3]:
+                        st.image(p["src"], caption=p["alt"], use_container_width=True)
+                        if p.get("caption"):
+                            st.caption(p["caption"][:120])
+            elif tl == "Events":
+                st.markdown(f"<div class='result-card anim-scale'>{_md(c) or '_No upcoming events found_'}</div>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<div class='result-card anim-scale'>{_md(c) or '_No data_'}</div>", unsafe_allow_html=True)
 
     c_dl, c_json, c_pdf, c_in = st.columns([1, 1, 1, 2])
     with c_dl:
@@ -832,9 +857,9 @@ if generate:
                             wr = state_update.get("weather_results","")
                             collected.update({"flight_results":fr,"hotel_results":hr,"weather_results":wr})
                             parts = []
-                            if fr: parts.append(f"<details open><summary style='color:{ACCENT};font-weight:600;cursor:pointer;font-size:0.82rem;margin-bottom:0.2rem;'>{ICON('plane',12)} Flight</summary><div style='padding:0.2rem 0 0.5rem;font-size:0.82rem;'>{fr}</div></details>")
-                            if hr: parts.append(f"<details><summary style='color:{ACCENT};font-weight:600;cursor:pointer;font-size:0.82rem;margin-bottom:0.2rem;'>{ICON('building',12)} Hotel</summary><div style='padding:0.2rem 0 0.5rem;font-size:0.82rem;'>{hr}</div></details>")
-                            if wr: parts.append(f"<details><summary style='color:{ACCENT};font-weight:600;cursor:pointer;font-size:0.82rem;margin-bottom:0.2rem;'>{ICON('sun',12)} Weather</summary><div style='padding:0.2rem 0 0.5rem;font-size:0.82rem;'>{wr}</div></details>")
+                            if fr: parts.append(f"<details open><summary style='color:{ACCENT};font-weight:600;cursor:pointer;font-size:0.82rem;margin-bottom:0.2rem;'>{ICON('plane',12)} Flight</summary><div style='padding:0.2rem 0 0.5rem;font-size:0.82rem;'>{_md(fr)}</div></details>")
+                            if hr: parts.append(f"<details><summary style='color:{ACCENT};font-weight:600;cursor:pointer;font-size:0.82rem;margin-bottom:0.2rem;'>{ICON('building',12)} Hotel</summary><div style='padding:0.2rem 0 0.5rem;font-size:0.82rem;'>{_md(hr)}</div></details>")
+                            if wr: parts.append(f"<details><summary style='color:{ACCENT};font-weight:600;cursor:pointer;font-size:0.82rem;margin-bottom:0.2rem;'>{ICON('sun',12)} Weather</summary><div style='padding:0.2rem 0 0.5rem;font-size:0.82rem;'>{_md(wr)}</div></details>")
                             res_placeholder.markdown("".join(parts) if parts else "_No data_", unsafe_allow_html=True)
                         elif node_name=="itinerary_agent":
                             collected["itinerary"]=state_update.get("itinerary","")
@@ -896,13 +921,13 @@ f"""<div class="metric-row anim-slide" style="margin-bottom:1.2rem">
             for ti, tl in enumerate(active_tabs):
                 with tabs[ti]:
                     if tl == "Flight":
-                        st.markdown(f"<div class='result-card anim-scale'>{fr or '_No flight data available_'}</div>" if fr else "_No flight data_", unsafe_allow_html=True)
+                        st.markdown(f"<div class='result-card anim-scale'>{_md(fr) or '_No flight data available_'}</div>" if fr else "_No flight data_", unsafe_allow_html=True)
                     elif tl == "Hotel":
-                        st.markdown(f"<div class='result-card anim-scale'>{hr or '_No hotel data available_'}</div>" if hr else "_No hotel data_", unsafe_allow_html=True)
+                        st.markdown(f"<div class='result-card anim-scale'>{_md(hr) or '_No hotel data available_'}</div>" if hr else "_No hotel data_", unsafe_allow_html=True)
                     elif tl == "Weather":
-                        st.markdown(f"<div class='result-card anim-scale'>{wr or '_No weather data available_'}</div>" if wr else "_No weather data_", unsafe_allow_html=True)
+                        st.markdown(f"<div class='result-card anim-scale'>{_md(wr) or '_No weather data available_'}</div>" if wr else "_No weather data_", unsafe_allow_html=True)
                     elif tl == "Itinerary":
-                        st.markdown(f"<div class='result-card anim-scale'>{itin or '_No itinerary_'}</div>" if itin else "_No itinerary_", unsafe_allow_html=True)
+                        st.markdown(f"<div class='result-card anim-scale'>{_md(itin) or '_No itinerary_'}</div>" if itin else "_No itinerary_", unsafe_allow_html=True)
 
         # Save file
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -944,10 +969,11 @@ f"""<div class="metric-row anim-slide" style="margin-bottom:1.2rem">
 
         short = f"{to_city.split('(')[0].strip()} · {dep_date}"
         if short not in st.session_state.history: st.session_state.history.append(short)
+        events_str = asyncio.run(get_destination_events(to_city.split("(")[0].strip()))
         st.session_state.trip_history[short] = {
             "itinerary": itin, "flight": fr, "hotel": hr, "weather": wr,
             "agents": agents_run, "llm_calls": collected["llm_calls"], "time": total_time,
-            "to_city": to_city, "from_city": from_city, "fc": fc, "fn": fn,
+            "to_city": to_city, "from_city": from_city, "fc": fc, "fn": fn, "events": events_str,
         }
 
         dl_col, json_col, pdf_col, info_col = st.columns([1, 1, 1, 2])
@@ -976,5 +1002,5 @@ f"""<div class="metric-row anim-slide" style="margin-bottom:1.2rem">
         st.session_state.last_result = {
             "itinerary": itin, "flight": fr, "hotel": hr, "weather": wr,
             "agents": agents_run, "llm_calls": collected["llm_calls"], "time": total_time,
-            "to_city": to_city, "from_city": from_city, "fc": fc, "fn": fn,
+            "to_city": to_city, "from_city": from_city, "fc": fc, "fn": fn, "events": events_str,
         }
