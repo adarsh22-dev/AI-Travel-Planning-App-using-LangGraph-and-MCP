@@ -157,6 +157,74 @@ async def _wikipedia_page_images(page_id: int, count: int):
     except:
         return []
 
+def _wikipedia_page_image_sync(city: str):
+    UA = {"User-Agent": "AITravelPlanner/1.0"}
+    try:
+        url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{requests.utils.quote(city)}"
+        resp = requests.get(url, headers=UA, timeout=10)
+        if resp.status_code != 200:
+            url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{requests.utils.quote(f'{city} city')}"
+            resp = requests.get(url, headers=UA, timeout=10)
+            if resp.status_code != 200:
+                return None, None, None
+        data = resp.json()
+        thumb = (data.get("thumbnail") or {}).get("source")
+        extract = data.get("extract", "")[:200]
+        return thumb, extract, data.get("pageid")
+    except:
+        return None, None, None
+
+def _wikipedia_page_images_sync(page_id: int, count: int):
+    UA = {"User-Agent": "AITravelPlanner/1.0"}
+    try:
+        api = "https://en.wikipedia.org/w/api.php"
+        params = {
+            "action": "query",
+            "pageids": page_id,
+            "generator": "images",
+            "gimlimit": count,
+            "prop": "imageinfo",
+            "iiprop": "url",
+            "format": "json",
+        }
+        resp = requests.get(api, params=params, headers=UA, timeout=10)
+        data = resp.json()
+        pages = data.get("query", {}).get("pages", {})
+        urls = []
+        for pid, pdata in pages.items():
+            if int(pid) < 0:
+                continue
+            info = pdata.get("imageinfo", [])
+            if info and info[0].get("url", "").lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+                urls.append(info[0]["url"])
+        return urls[:count]
+    except:
+        return []
+
+def get_destination_photos_sync(city: str, count: int = 6):
+    thumb, extract, page_id = _wikipedia_page_image_sync(city)
+    photos = []
+    if thumb:
+        photos.append({"src": thumb, "alt": city, "caption": extract[:200] if extract else ""})
+    if page_id:
+        more = _wikipedia_page_images_sync(page_id, count - 1)
+        for url in more:
+            photos.append({"src": url, "alt": city, "caption": ""})
+    return photos
+
+def _tavily_search_sync(query: str):
+    client = _get_tavily()
+    result = client.search(query=query, max_results=5)
+    return _format_tavily(result)
+
+def get_destination_events_sync(city: str):
+    try:
+        q = f"Upcoming events and festivals in {city} {datetime.now().year}"
+        return _tavily_search_sync(q)
+    except:
+        return ""
+
+# Async versions (for use inside async context)
 async def get_destination_photos(city: str, count: int = 6):
     thumb, extract, page_id = await _wikipedia_page_image(city)
     photos = []

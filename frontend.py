@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from langchain_core.messages import HumanMessage
 from fpdf import FPDF
 from main import app
-from mcp_client import get_destination_photos, get_destination_events
+from mcp_client import get_destination_photos_sync, get_destination_events_sync
 import markdown as _mdlib
 
 def _md(text):
@@ -757,8 +757,7 @@ if lr and not generate:
     tab_pairs = [("Flight", lr_flight), ("Hotel", lr_hotel), ("Weather", lr_weather), ("Itinerary", lr_itin)]
     dest_city = (lr.get("to_city","") or "").split("(")[0].strip()
     if dest_city:
-        import asyncio
-        photos = asyncio.run(get_destination_photos(dest_city, 5))
+        photos = get_destination_photos_sync(dest_city, 5)
         if photos:
             tab_pairs.append(("Photos", photos))
     tab_pairs.append(("Events", lr.get("events","")))
@@ -990,7 +989,7 @@ f"""<div class="metric-row anim-slide" style="margin-bottom:1.2rem">
 
         short = f"{to_city.split('(')[0].strip()} · {dep_date}"
         if short not in st.session_state.history: st.session_state.history.append(short)
-        events_str = asyncio.run(get_destination_events(to_city.split("(")[0].strip()))
+        events_str = get_destination_events_sync(to_city.split("(")[0].strip())
         st.session_state.trip_history[short] = {
             "itinerary": itin, "flight": fr, "hotel": hr, "weather": wr,
             "agents": agents_run, "llm_calls": collected["llm_calls"], "time": total_time,
