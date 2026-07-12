@@ -16,6 +16,7 @@ st.set_page_config(page_title="AI Travel Planner", page_icon=":airplane:", layou
 
 CACHE_DIR = os.path.join(os.path.dirname(__file__), ".travel_cache")
 AUTOSAVE_FILE = os.path.join(CACHE_DIR, "autosave.json")
+HISTORY_FILE = os.path.join(CACHE_DIR, "history.json")
 
 def autosave(data):
     os.makedirs(CACHE_DIR, exist_ok=True)
@@ -24,7 +25,27 @@ def autosave(data):
             json.dump({k:v for k,v in data.items() if not k.startswith("_")}, f, indent=2, default=str)
     except: pass
 
-if "history" not in st.session_state: st.session_state.history = []
+def _save_history():
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+            json.dump({
+                "history": st.session_state.history,
+                "trip_history": {k: {kk: vv for kk, vv in v.items()} for k, v in st.session_state.trip_history.items()}
+            }, f, indent=2, default=str)
+    except: pass
+
+def _load_history():
+    try:
+        with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return {"history": [], "trip_history": {}}
+
+if "history" not in st.session_state:
+    data = _load_history()
+    st.session_state.history = data["history"]
+    st.session_state.trip_history = data["trip_history"]
 if "trip_history" not in st.session_state: st.session_state.trip_history = {}
 if "theme_color" not in st.session_state: st.session_state.theme_color = "#22D3EE"
 if "form_data" not in st.session_state: st.session_state.form_data = {}
@@ -975,6 +996,7 @@ f"""<div class="metric-row anim-slide" style="margin-bottom:1.2rem">
             "agents": agents_run, "llm_calls": collected["llm_calls"], "time": total_time,
             "to_city": to_city, "from_city": from_city, "fc": fc, "fn": fn, "events": events_str,
         }
+        _save_history()
 
         dl_col, json_col, pdf_col, info_col = st.columns([1, 1, 1, 2])
         with dl_col:
