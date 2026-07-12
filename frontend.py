@@ -20,10 +20,12 @@ def autosave(data):
     except: pass
 
 if "history" not in st.session_state: st.session_state.history = []
+if "trip_history" not in st.session_state: st.session_state.trip_history = {}
 if "theme_color" not in st.session_state: st.session_state.theme_color = "#22D3EE"
 if "form_data" not in st.session_state: st.session_state.form_data = {}
 if "wizard_step" not in st.session_state: st.session_state.wizard_step = 1
 if "last_result" not in st.session_state: st.session_state.last_result = None
+if "viewing_history" not in st.session_state: st.session_state.viewing_history = None
 
 # ── Load autosave on first run ──
 if "autosave_loaded" not in st.session_state:
@@ -244,6 +246,8 @@ section[data-testid="stSidebar"]{{background:linear-gradient(180deg,#090e18 0%,#
 .sidebar-chip:hover{{border-color:{ACCENT};color:#c0e0ff;background:rgba(20,40,70,0.8)}}
 .history-item{{background:rgba(14,26,43,0.5);border:1px solid #1a2e44;border-radius:8px;padding:0.4rem 0.6rem;margin:0 0.5rem 0.25rem;font-size:0.74rem;color:#7aa8cc;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:0.3rem;line-height:1.3;backdrop-filter:blur(4px)}}
 .history-item:hover{{border-color:{ACCENT};color:#fff;background:rgba(17,30,50,0.9)}}
+div.stButton > button[data-testid*="hist_"]{{background:rgba(14,26,43,0.5) !important;border:1px solid #1a2e44 !important;border-radius:8px !important;padding:0.4rem 0.6rem !important;margin:0 0.5rem 0.15rem !important;font-size:0.74rem !important;color:#7aa8cc !important;cursor:pointer !important;text-align:left !important;line-height:1.3 !important;font-family:'Inter',sans-serif !important;height:auto !important;min-height:unset !important;box-shadow:none !important}}
+div.stButton > button[data-testid*="hist_"]:hover{{border-color:{ACCENT} !important;color:#fff !important;background:rgba(17,30,50,0.9) !important}}
 
 /* ── Hero ── */
 .hero-wrap{{position:relative;border-radius:20px;overflow:hidden;margin-bottom:1.5rem;height:210px;background:linear-gradient(135deg,#0a1628 0%,{darken(ACCENT,0.65)} 50%,#0a1628 100%);background-size:200% 200%;animation:gradientShift 8s ease infinite}}
@@ -521,8 +525,10 @@ with st.sidebar:
 
     st.markdown(f"<div class='sidebar-sec'>{ICON('clock',12)} History</div>", unsafe_allow_html=True)
     if st.session_state.history:
-        for h in st.session_state.history[-5:]:
-            st.markdown(f"<div class='history-item'>{ICON('map',11)} {h}</div>", unsafe_allow_html=True)
+        for h in reversed(st.session_state.history[-5:]):
+            if st.button(h, key=f"hist_{h}", use_container_width=True):
+                st.session_state.viewing_history = h
+                st.rerun()
     else:
         st.markdown("<div class='sidebar-chip' style='color:#4a6a85;'>No trips yet</div>", unsafe_allow_html=True)
 
@@ -692,6 +698,11 @@ except NameError:
     generate = False
 
 # ── Previous result (persists across reruns) ──
+if st.session_state.viewing_history:
+    hk = st.session_state.viewing_history
+    if hk in st.session_state.trip_history:
+        st.session_state.last_result = st.session_state.trip_history[hk]
+    st.session_state.viewing_history = None
 lr = st.session_state.last_result
 if lr and not generate:
     st.markdown("---")
@@ -933,6 +944,11 @@ f"""<div class="metric-row anim-slide" style="margin-bottom:1.2rem">
 
         short = f"{to_city.split('(')[0].strip()} · {dep_date}"
         if short not in st.session_state.history: st.session_state.history.append(short)
+        st.session_state.trip_history[short] = {
+            "itinerary": itin, "flight": fr, "hotel": hr, "weather": wr,
+            "agents": agents_run, "llm_calls": collected["llm_calls"], "time": total_time,
+            "to_city": to_city, "from_city": from_city, "fc": fc, "fn": fn,
+        }
 
         dl_col, json_col, pdf_col, info_col = st.columns([1, 1, 1, 2])
         with dl_col:
