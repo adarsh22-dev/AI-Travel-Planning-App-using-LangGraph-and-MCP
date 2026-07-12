@@ -6,7 +6,6 @@ import asyncio
 import warnings
 from typing import TypedDict, Annotated
 from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.postgres import PostgresSaver
 from langchain_core.messages import AnyMessage, HumanMessage, AIMessage, SystemMessage
 from mcp_client import (
     tavily_mcp_search, get_airports, get_airlines,
@@ -194,6 +193,7 @@ _checkpointer = None
 _conn = None
 try:
     import psycopg
+    from langgraph.checkpoint.postgres import PostgresSaver
     _conn = psycopg.connect(DATABASE_URL)
     _checkpointer = PostgresSaver(_conn)
     _checkpointer.setup()

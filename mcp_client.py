@@ -1,107 +1,117 @@
 import os
-import sys
 import asyncio
-import time
+import json
+import requests
 from dotenv import load_dotenv
-from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_groq import ChatGroq
+from tavily import TavilyClient
 
 load_dotenv(override=True)
+
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 AVIATION_STACK_API_KEY = os.getenv("AVIATIONSTACK_API_KEY")
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+_tavily_client = None
 
-AVIATION_VENV_PYTHON = os.path.join(
-    PROJECT_ROOT, "aviationstack-mcp", ".venv", "Scripts", "python.exe"
-)
-if not os.path.isfile(AVIATION_VENV_PYTHON):
-    AVIATION_VENV_PYTHON = sys.executable
-
-WEATHER_SERVER = os.path.join(PROJECT_ROOT, "custom_weather_mcp_server.py")
-
-client = MultiServerMCPClient(
-    {
-        "tavily": {
-            "transport": "streamable_http",
-            "url": f"https://mcp.tavily.com/mcp/?tavilyApiKey={TAVILY_API_KEY}",
-        },
-        "aviationstack": {
-            "transport": "stdio",
-            "command": AVIATION_VENV_PYTHON,
-            "args": ["-m", "aviationstack_mcp", "mcp", "run"],
-            "env": {"AVIATION_STACK_API_KEY": AVIATION_STACK_API_KEY},
-        },
-        "weather": {
-            "transport": "stdio",
-            "command": sys.executable,
-            "args": [WEATHER_SERVER],
-            "env": {"OPENWEATHER_API_KEY": OPENWEATHER_API_KEY},
-        },
-    }
-)
-
-search_tool = None
-aviation_tools = {}
-weather_tool = None
-forecast_tool = None
-
-async def initialize_mcp():
-    global search_tool, aviation_tools
-    if search_tool is not None and aviation_tools:
-        return
-    tools = await client.get_tools()
-    search_tool = next(t for t in tools if t.name == "tavily_search")
-    aviation_tools = {t.name: t for t in tools if t.name != "tavily_search"}
-
-async def initialize_weather_tools():
-    global weather_tool, forecast_tool
-    if weather_tool is not None:
-        return
-    tools = await client.get_tools()
-    weather_tool = next(t for t in tools if t.name == "get_current_weather")
-    forecast_tool = next(t for t in tools if t.name == "get_forecast")
+def _get_tavily():
+    global _tavily_client
+    if _tavily_client is None:
+        _tavily_client = TavilyClient(api_key=TAVILY_API_KEY)
+    return _tavily_client
 
 async def tavily_mcp_search(query: str):
-    await initialize_mcp()
-    return await search_tool.ainvoke({"query": query})
+    client = _get_tavily()
+    result = await asyncio.to_thread(client.search, query=query, max_results=5)
+    return _format_tavily(result)
+
+def _format_tavily(response):
+    results = []
+    for i, r in enumerate(response.get("results", []), 1):
+        title = r.get("title", "Unknown")
+        url = r.get("url", "")
+        snippet = r.get("content", "").strip()
+        if len(snippet) > 300:
+            snippet = snippet[:300].rsplit(" ", 1)[0] + "..."
+        results.append(f"{i}. **{title}**\n   {url}\n   {snippet}")
+    return "\n\n".join(results)
+
+AVIATION_BASE = "https://api.aviationstack.com/v1"
+
+_AVIATION_ENDPOINTS = {
+    "list_airports": "airports",
+    "list_airlines": "airlines",
+    "flights_with_airline": "flights",
+    "historical_flights_by_date": "flights",
+    "flight_arrival_departure_schedule": "timetable",
+    "future_flights_arrival_departure_schedule": "flightsFuture",
+    "random_aircraft_type": "aircraft_types",
+    "random_airplanes_detailed_info": "airplanes",
+    "random_countries_detailed_info": "countries",
+    "random_cities_detailed_info": "cities",
+    "list_routes": "routes",
+    "list_taxes": "taxes",
+}
+
+async def _aviation_api_call(endpoint: str, params: dict = None):
+    url = f"{AVIATION_BASE}/{endpoint}"
+    p = {"access_key": AVIATION_STACK_API_KEY}
+    if params:
+        p.update(params)
+    resp = await asyncio.to_thread(requests.get, url, params=p)
+    return resp.json()
 
 async def aviation_mcp_call(tool_name: str, tool_args: dict = None):
-    tools = await client.get_tools()
-    tool = next(t for t in tools if t.name == tool_name)
-    return await tool.ainvoke(tool_args or {})
+    endpoint = _AVIATION_ENDPOINTS.get(tool_name)
+    if not endpoint:
+        return f"Unknown aviation tool: {tool_name}"
+    return await _aviation_api_call(endpoint, tool_args or {})
 
 async def get_airports():
-    await initialize_mcp()
-    tool = aviation_tools.get("list_airports")
-    return await tool.ainvoke({}) if tool else "Airport tool unavailable"
+    return await aviation_mcp_call("list_airports")
 
 async def get_airlines():
-    await initialize_mcp()
-    tool = aviation_tools.get("list_airlines")
-    return await tool.ainvoke({}) if tool else "Airline tool unavailable"
+    return await aviation_mcp_call("list_airlines")
+
+WEATHER_BASE = "https://api.openweathermap.org/data/2.5"
+
+async def _weather_api_call(endpoint: str, city: str):
+    url = f"{WEATHER_BASE}/{endpoint}"
+    params = {"q": city, "appid": OPENWEATHER_API_KEY, "units": "metric"}
+    resp = await asyncio.to_thread(requests.get, url, params=params)
+    data = resp.json()
+    if resp.status_code != 200:
+        return data
+    return data
 
 async def weather_mcp_search(city: str):
-    await initialize_weather_tools()
-    return await weather_tool.ainvoke({"city": city})
+    data = await _weather_api_call("weather", city)
+    if "main" not in data:
+        return data
+    return {
+        "city": data.get("name", city),
+        "temperature_c": data["main"]["temp"],
+        "feels_like_c": data["main"]["feels_like"],
+        "humidity": data["main"]["humidity"],
+        "condition": data["weather"][0]["description"],
+        "wind_speed": data["wind"]["speed"],
+    }
 
 async def forecast_mcp_search(city: str):
-    await initialize_weather_tools()
-    return await forecast_tool.ainvoke({"city": city})
-
+    data = await _weather_api_call("forecast", city)
+    if "list" not in data:
+        return data
+    forecast = []
+    for item in data["list"][:5]:
+        forecast.append({
+            "datetime": item["dt_txt"],
+            "temperature": item["main"]["temp"],
+            "weather": item["weather"][0]["description"],
+        })
+    return {"city": city, "forecast": forecast}
 
 def get_llm(model_name: str = "llama-3.3-70b-versatile"):
     return ChatGroq(model=model_name)
-
-def extract_destination(query: str, model_name: str = "llama-3.3-70b-versatile"):
-    llm = get_llm(model_name)
-    prompt = f"""From this travel query, extract ONLY the destination city or country (not the origin).
-If multiple are mentioned, pick the primary destination.
-Return ONLY the destination name, nothing else.
-
-Query: {query}"""
-    return llm.invoke(prompt).content.strip()
 
 def parse_json(text: str):
     start = text.find('{')
@@ -113,13 +123,22 @@ def parse_json(text: str):
     except json.JSONDecodeError:
         return None
 
+def extract_destination(query: str, model_name: str = "llama-3.3-70b-versatile"):
+    llm = get_llm(model_name)
+    prompt = f"""From this travel query, extract ONLY the destination city or country (not the origin).
+If multiple are mentioned, pick the primary destination.
+Return ONLY the destination name, nothing else.
+
+Query: {query}"""
+    return llm.invoke(prompt).content.strip()
+
 def analyze_query(query: str, model_name: str = "llama-3.3-70b-versatile"):
     llm = get_llm(model_name)
     prompt = f"""Analyze this travel query and return a JSON object with these exact fields:
 - destination: str (primary destination city/country, or empty string)
 - origin: str (departure city if mentioned, empty string if not)
 - duration_days: int (estimated trip length in days, 0 if unknown)
-- budget: str (budget level: "Budget", "Moderate", "Premium", "Luxury", or empty)
+- budget: str ("Budget", "Moderate", "Premium", "Luxury", or empty)
 - pace: str ("Relaxed", "Moderate", or "Packed", or empty)
 - needs_flights: bool (whether flights are needed)
 - needs_hotels: bool (whether hotels are needed)
@@ -140,17 +159,14 @@ Return ONLY valid JSON. No markdown, no extra text."""
         "needs_weather": True, "travelers": 1, "interests": [],
     }
 
-
 async def main():
     query = "I want to visit Paris next week"
     analysis = analyze_query(query)
     print(f"Analysis: {analysis}")
     dest = extract_destination(query)
     print(f"Destination: {dest}")
-    await initialize_mcp()
-    await initialize_weather_tools()
     search_results = await tavily_mcp_search(f"Best hotels and attractions in {dest}")
-    print(f"Search: {search_results[:200]}...")
+    print(f"Search: {str(search_results)[:200]}...")
     weather = await weather_mcp_search(dest)
     print(f"Weather: {weather}")
 
