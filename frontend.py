@@ -799,7 +799,7 @@ if generate:
                     ik, lb = AGENT_META.get(node_name, ("settings",node_name))
                     pipe_placeholder.markdown(pipeline_svg(completed_agents, running_agent), unsafe_allow_html=True)
 
-                    with st.status(f"{ICON(ik,16,color=ACCENT)} {lb}", state="running", expanded=True):
+                    with st.status(lb, state="running", expanded=True):
                         res_placeholder = st.empty()
                         res_placeholder.markdown(f"<div style='padding:0.3rem 0;'>{SKELETON_CARDS()}</div>", unsafe_allow_html=True)
                         if node_name == "query_analyzer":
