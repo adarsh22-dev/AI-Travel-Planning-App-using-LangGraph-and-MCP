@@ -56,35 +56,37 @@ CITY_COORDS = {
 
 THEME = st.session_state.theme_color
 
+def _pdf_safe(text):
+    return text.encode("latin-1", "replace").decode("latin-1")
+
 def markdown_to_pdf(title: str, body: str) -> bytes:
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.set_title(title)
-    # Use built-in Helvetica (always available, no external font files needed)
     pdf.set_font("Helvetica", "B", 15)
-    pdf.cell(0, 10, title, new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, _pdf_safe(title), ln=2)
     pdf.ln(3)
     pdf.set_font("Helvetica", "", 8)
-    for line in body.split("\n"):
+    for line in (body or "").split("\n"):
         clean = line.strip()
         if not clean:
             pdf.ln(2)
         elif clean.startswith("###") or clean.startswith("##"):
             pdf.set_font("Helvetica", "B", 10)
-            pdf.cell(0, 6, clean.lstrip("#").strip(), new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 6, _pdf_safe(clean.lstrip("#").strip()), ln=2)
             pdf.set_font("Helvetica", "", 8)
             pdf.ln(1)
         elif clean.startswith("**") and clean.endswith("**"):
             pdf.set_font("Helvetica", "B", 9)
-            pdf.cell(0, 5, clean.strip("*"), new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 5, _pdf_safe(clean.strip("*")), ln=2)
             pdf.set_font("Helvetica", "", 8)
         else:
             text = clean.replace("**", "").replace("*", "").replace("`", "").replace("_", "")
             if len(text) > 90:
-                pdf.multi_cell(0, 4, text)
+                pdf.multi_cell(0, 4, _pdf_safe(text))
             else:
-                pdf.cell(0, 4.5, text, new_x="LMARGIN", new_y="NEXT")
+                pdf.cell(0, 4.5, _pdf_safe(text), ln=2)
     return pdf.output()
 
 def darken(h, a=0.3):
