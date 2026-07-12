@@ -56,38 +56,40 @@ CITY_COORDS = {
 
 THEME = st.session_state.theme_color
 
-def _pdf_safe(text):
-    return text.encode("latin-1", "replace").decode("latin-1")
-
 def markdown_to_pdf(title: str, body: str) -> bytes:
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.set_title(title)
-    pdf.set_font("Helvetica", "B", 15)
-    pdf.cell(0, 10, _pdf_safe(title), ln=2)
-    pdf.ln(3)
-    pdf.set_font("Helvetica", "", 8)
-    for line in (body or "").split("\n"):
-        clean = line.strip()
-        if not clean:
-            pdf.ln(2)
-        elif clean.startswith("###") or clean.startswith("##"):
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.cell(0, 6, _pdf_safe(clean.lstrip("#").strip()), ln=2)
-            pdf.set_font("Helvetica", "", 8)
-            pdf.ln(1)
-        elif clean.startswith("**") and clean.endswith("**"):
-            pdf.set_font("Helvetica", "B", 9)
-            pdf.cell(0, 5, _pdf_safe(clean.strip("*")), ln=2)
-            pdf.set_font("Helvetica", "", 8)
-        else:
-            text = clean.replace("**", "").replace("*", "").replace("`", "").replace("_", "")
-            if len(text) > 90:
-                pdf.multi_cell(0, 4, _pdf_safe(text))
+    try:
+        from fpdf import FPDF
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.set_title(title[:128])
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, title[:128].encode("latin-1","replace").decode("latin-1"), ln=2)
+        pdf.ln(3)
+        pdf.set_font("Helvetica", "", 8)
+        for line in (body or "").split("\n"):
+            clean = line.strip()
+            if not clean:
+                pdf.ln(2)
+            elif clean.startswith("###") or clean.startswith("##"):
+                pdf.set_font("Helvetica", "B", 10)
+                pdf.cell(0, 6, clean.lstrip("#").strip()[:120].encode("latin-1","replace").decode("latin-1"), ln=2)
+                pdf.set_font("Helvetica", "", 8)
+                pdf.ln(1)
+            elif clean.startswith("**") and clean.endswith("**"):
+                pdf.set_font("Helvetica", "B", 9)
+                pdf.cell(0, 5, clean.strip("*")[:120].encode("latin-1","replace").decode("latin-1"), ln=2)
+                pdf.set_font("Helvetica", "", 8)
             else:
-                pdf.cell(0, 4.5, _pdf_safe(text), ln=2)
-    return pdf.output()
+                txt = clean.replace("**","").replace("*","").replace("`","").replace("_","")
+                txt = txt[:200].encode("latin-1","replace").decode("latin-1")
+                if len(txt) > 90:
+                    pdf.multi_cell(0, 4, txt)
+                else:
+                    pdf.cell(0, 4.5, txt, ln=2)
+        return bytes(pdf.output())
+    except Exception:
+        return b""
 
 def darken(h, a=0.3):
     r, g, b = int(h[1:3],16), int(h[3:5],16), int(h[5:7],16)
@@ -326,7 +328,7 @@ div[data-testid="stDownloadButton"]>button:hover{{border-color:{ACCENT}!importan
 .dash-tabs button[data-baseweb="tab"]{{background:rgba(14,26,43,0.5)!important;border:1px solid #1e3050!important;border-radius:8px 8px 0 0!important;color:#7aa8cc!important;font-size:0.82rem!important;font-weight:500!important;padding:0.4rem 1rem!important;transition:all 0.2s!important}}
 .dash-tabs button[aria-selected="true"]{{background:rgba(20,40,70,0.8)!important;border-color:{ACCENT}!important;color:{ACCENT}!important;font-weight:600!important;box-shadow:0 -2px 8px {AGLOW}!important}}
 .dash-tabs [role="tabpanel"]{{background:rgba(14,22,35,0.5)!important;border:1px solid #1e3050!important;border-top:none!important;border-radius:0 0 12px 12px!important;padding:1rem!important}}
-.result-card{{background:rgba(10,21,32,0.6);border:1px solid rgba(30,48,68,0.4);border-radius:12px;padding:1rem;margin-bottom:0.8rem;transition:all 0.2s}}
+.result-card{{background:rgba(10,21,32,0.6);border:1px solid rgba(30,48,68,0.4);border-radius:12px;padding:1rem;margin-bottom:0.8rem;transition:all 0.2s;overflow-wrap:break-word;word-wrap:break-word;word-break:break-word}}
 .result-card:hover{{border-color:{ACCENT};box-shadow:0 4px 16px rgba(0,0,0,0.3)}}
 .result-card h4{{color:{ACCENT};font-size:0.85rem;font-weight:600;margin:0 0 0.4rem;display:flex;align-items:center;gap:0.3rem}}
 .result-card p,.result-card li{{color:#b0cce8;font-size:0.85rem;line-height:1.6;margin:0.15rem 0}}
