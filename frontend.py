@@ -710,7 +710,7 @@ if lr and not generate:
         with col:
             st.markdown(f"<div class='dash-stat'><div class='dash-stat-val' style='font-size:{fs};'>{v}</div><div class='dash-stat-lbl'>{ICON(ik,10)} {lb}</div></div>", unsafe_allow_html=True)
 
-    tab_pairs = [(f"{ICON('plane',12)} Flight", lr_flight), (f"{ICON('building',12)} Hotel", lr_hotel), (f"{ICON('sun',12)} Weather", lr_weather), (f"{ICON('calendar',12)} Itinerary", lr_itin)]
+    tab_pairs = [("Flight", lr_flight), ("Hotel", lr_hotel), ("Weather", lr_weather), ("Itinerary", lr_itin)]
     active_tabs = [(tl, c) for tl, c in tab_pairs if c]
     if not active_tabs:
         active_tabs = tab_pairs[:1]
@@ -872,7 +872,7 @@ f"""<div class="metric-row anim-slide" style="margin-bottom:1.2rem">
                 st.markdown(f"<div class='dash-stat'><div class='dash-stat-val' style='font-size:{fs};'>{val}</div><div class='dash-stat-lbl'>{ICON(ik,10)} {lb}</div></div>", unsafe_allow_html=True)
 
         # ── Tabbed results ──
-        tab_labels = [f"{ICON('plane',12)} Flight", f"{ICON('building',12)} Hotel", f"{ICON('sun',12)} Weather", f"{ICON('calendar',12)} Itinerary"]
+        tab_labels = ["Flight", "Hotel", "Weather", "Itinerary"]
         if needs_flight == False and not fr: tab_labels[0] = None
         if needs_hotel == False and not hr: tab_labels[1] = None
         active_tabs = [t for t in tab_labels if t is not None]
@@ -880,13 +880,13 @@ f"""<div class="metric-row anim-slide" style="margin-bottom:1.2rem">
             tabs = st.tabs(active_tabs)
             for ti, tl in enumerate(active_tabs):
                 with tabs[ti]:
-                    if "Flight" in tl:
+                    if tl == "Flight":
                         st.markdown(f"<div class='result-card anim-scale'>{fr or '_No flight data available_'}</div>" if fr else "_No flight data_", unsafe_allow_html=True)
-                    elif "Hotel" in tl:
+                    elif tl == "Hotel":
                         st.markdown(f"<div class='result-card anim-scale'>{hr or '_No hotel data available_'}</div>" if hr else "_No hotel data_", unsafe_allow_html=True)
-                    elif "Weather" in tl:
+                    elif tl == "Weather":
                         st.markdown(f"<div class='result-card anim-scale'>{wr or '_No weather data available_'}</div>" if wr else "_No weather data_", unsafe_allow_html=True)
-                    elif "Itinerary" in tl:
+                    elif tl == "Itinerary":
                         st.markdown(f"<div class='result-card anim-scale'>{itin or '_No itinerary_'}</div>" if itin else "_No itinerary_", unsafe_allow_html=True)
 
         # Save file
