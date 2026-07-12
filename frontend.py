@@ -557,7 +557,7 @@ if step == 1:
         to_city = st.selectbox("To", to_opts, index=to_idx if to_idx < len(to_opts) else 0)
     route_map, distance = create_route_map(from_city, to_city)
     if route_map:
-        st_folium(route_map, width=None, height=220, returned_objects=[])
+        _ = st_folium(route_map, width=None, height=220, returned_objects=[])
         if distance:
             st.markdown(f"<div style='text-align:center;margin-top:0.3rem;font-size:0.78rem;color:#94adc8;'>{distance:.0f} km ({distance*0.621371:.0f} mi) · {from_city.split('(')[0].strip()} → {to_city.split('(')[0].strip()}</div>", unsafe_allow_html=True)
     fd.update({"trip_type":trip_type,"from_city":from_city,"to_city":to_city}); autosave(fd)
@@ -658,7 +658,7 @@ elif step == 5:
     needs_hotel = trip_type in ("Flights + Hotels", "Hotels Only")
     route_map, distance = create_route_map(from_city, to_city)
     if route_map:
-        st_folium(route_map, width=None, height=200, returned_objects=[])
+        _ = st_folium(route_map, width=None, height=200, returned_objects=[])
         if distance:
             st.markdown(f"<div style='text-align:center;margin-top:0.3rem;font-size:0.78rem;color:#94adc8;'>{distance:.0f} km ({distance*0.621371:.0f} mi) · {from_city.split('(')[0].strip()} → {to_city.split('(')[0].strip()}</div>", unsafe_allow_html=True)
     labels = [
