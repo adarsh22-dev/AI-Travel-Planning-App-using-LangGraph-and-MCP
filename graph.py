@@ -89,8 +89,9 @@ def build_graph():
         app = graph.compile(checkpointer=_checkpointer)
         print("[OK] PostgreSQL connected — memory enabled")
     except Exception as e:
-        app = graph.compile()
-        print(f"[WARN] PostgreSQL unavailable ({e}) — running without memory")
+        from langgraph.checkpoint.memory import MemorySaver
+        app = graph.compile(checkpointer=MemorySaver())
+        print(f"[WARN] PostgreSQL unavailable ({e}) — using in-memory checkpointer")
 
     return app
 
