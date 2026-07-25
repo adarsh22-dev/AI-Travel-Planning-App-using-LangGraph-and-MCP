@@ -1,4 +1,4 @@
-import os, json, io
+import os, json, io, base64
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
@@ -6,10 +6,6 @@ from datetime import datetime, timedelta
 from langchain_core.messages import HumanMessage
 from langgraph.types import Command
 from fpdf import FPDF
-try:
-    from fpdf.enums import XPos, YPos
-except ImportError:
-    from fpdf import XPos, YPos
 from graph import app
 from mcp_client import get_destination_photos_sync, get_destination_events_sync
 import re as _re
@@ -64,6 +60,7 @@ if "viewing_history" not in st.session_state: st.session_state.viewing_history =
 if "approval_pending" not in st.session_state: st.session_state.approval_pending = False
 if "pending_result" not in st.session_state: st.session_state.pending_result = None
 if "pending_config" not in st.session_state: st.session_state.pending_config = None
+if "trigger_generation" not in st.session_state: st.session_state.trigger_generation = False
 
 # ── Load autosave on first run ──
 if "autosave_loaded" not in st.session_state:
@@ -96,41 +93,56 @@ CITY_COORDS = {
 
 THEME = st.session_state.theme_color
 
-def markdown_to_pdf(title: str, body: str) -> bytes:
-    try:
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_auto_page_break(auto=True, margin=15)
-        _san = lambda t: t.encode("latin-1", "replace").decode("latin-1")
+def _san(t):
+    return t.encode("ascii", "replace").decode("ascii")
 
-        pdf.set_title(title[:128])
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(0, 10, _san(title[:128]), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        pdf.ln(3)
-        pdf.set_font("Helvetica", "", 9)
-        for line in (body or "").split("\n"):
-            clean = line.strip()
-            if not clean:
-                pdf.ln(2)
-            elif clean.startswith("###") or clean.startswith("##"):
-                pdf.set_font("Helvetica", "B", 11)
-                pdf.cell(0, 6, _san(clean.lstrip("#").strip()[:120]), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-                pdf.set_font("Helvetica", "", 9)
-                pdf.ln(2)
-            elif clean.startswith("**") and clean.endswith("**"):
-                pdf.set_font("Helvetica", "B", 10)
-                pdf.cell(0, 5, _san(clean.strip("*")[:120]), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-                pdf.set_font("Helvetica", "", 9)
+def _to_bytes(pdf_output):
+    if isinstance(pdf_output, bytes):
+        return pdf_output
+    if isinstance(pdf_output, bytearray):
+        return bytes(pdf_output)
+    if isinstance(pdf_output, str):
+        return pdf_output.encode("latin-1")
+    return bytes(pdf_output)
+
+def markdown_to_pdf(title: str, body: str) -> bytes:
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+
+    pdf.set_title(_san(title[:128]))
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.cell(0, 10, _san(title[:128]), ln=2)
+    pdf.ln(3)
+    pdf.set_font("Helvetica", "", 9)
+    for line in (body or "").split("\n"):
+        clean = line.strip()
+        if not clean:
+            pdf.ln(2)
+        elif clean.startswith("###") or clean.startswith("##"):
+            pdf.set_font("Helvetica", "B", 11)
+            pdf.cell(0, 6, _san(clean.lstrip("#").strip()[:120]), ln=2)
+            pdf.set_font("Helvetica", "", 9)
+            pdf.ln(2)
+        elif clean.startswith("**") and clean.endswith("**"):
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.cell(0, 5, _san(clean.strip("*")[:120]), ln=2)
+            pdf.set_font("Helvetica", "", 9)
+        else:
+            txt = _san(clean.replace("**","").replace("*","").replace("`","").replace("_","")[:200])
+            if len(txt) > 90:
+                pdf.multi_cell(0, 4, txt)
             else:
-                txt = _san(clean.replace("**","").replace("*","").replace("`","").replace("_","")[:200])
-                if len(txt) > 90:
-                    pdf.multi_cell(0, 4, txt)
-                else:
-                    pdf.cell(0, 4.5, txt, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        out = pdf.output()
-        return bytes(out) if len(out) > 100 else b""
-    except Exception:
-        return b""
+                pdf.cell(0, 4.5, txt, ln=2)
+    out = pdf.output()
+    pdf_bytes = _to_bytes(out)
+    return pdf_bytes if len(pdf_bytes) > 100 else b""
+
+def _dl_pdf_link(pdf_data: bytes, filename: str):
+    if len(pdf_data) < 100:
+        return f'<button disabled style="...">PDF</button>'
+    b64 = base64.b64encode(pdf_data).decode()
+    return f'<a href="data:application/pdf;base64,{b64}" download="{_san(filename)}" style="display:inline-flex;align-items:center;gap:6px;background:rgba(26,58,92,0.8);backdrop-filter:blur(8px);color:#e8f4ff;border:1px solid rgba(42,80,128,0.5);border-radius:12px;padding:0.4rem 1rem;font-size:0.85rem;font-weight:500;text-decoration:none;transition:0.2s;cursor:pointer;">{ICON("download",14)} PDF</a>'
 
 def darken(h, a=0.3):
     r, g, b = int(h[1:3],16), int(h[3:5],16), int(h[5:7],16)
@@ -911,10 +923,10 @@ elif step == 5:
         if st.button("← Edit", key="wiz_back5", use_container_width=True):
             st.session_state.wizard_step = 4; st.rerun()
     with c5b:
-        generate = st.button("Plan My Trip", use_container_width=True, type="primary")
+        if st.button("Plan My Trip", use_container_width=True, type="primary"):
+            st.session_state.trigger_generation = True
+            st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
-
-generate = False
 
 # ── Previous result (persists across reruns) ──
 if st.session_state.viewing_history:
@@ -923,7 +935,7 @@ if st.session_state.viewing_history:
         st.session_state.last_result = st.session_state.trip_history[hk]
     st.session_state.viewing_history = None
 lr = st.session_state.last_result
-if lr and not generate:
+if lr and not st.session_state.trigger_generation:
     st.markdown("---")
     st.markdown(f"<div class='sec-head'>{ICON('layers',16)}<span>Trip Dashboard</span></div>", unsafe_allow_html=True)
 
@@ -978,11 +990,16 @@ if lr and not generate:
         lr_jc = json.dumps({"destination": lr.get("to_city","?").split("(")[0].strip() if lr.get("to_city") else "?", "generated_at": datetime.now().isoformat(), "flight": lr.get("flight",""), "hotel": lr.get("hotel",""), "weather": lr.get("weather",""), "budget": lr.get("budget",""), "itinerary": lr.get("itinerary","")}, indent=2, default=str)
         st.download_button("JSON", data=lr_jc, file_name=lr_fn, mime="application/json", use_container_width=True)
     with c_pdf:
-        lr_pdf = markdown_to_pdf(lr.get("fn","trip.md").replace(".md","").replace("_"," "), lr.get("fc",""))
-        if len(lr_pdf) > 100:
-            st.download_button("PDF", data=lr_pdf, file_name=lr.get("fn","trip.md").replace(".md",".pdf"), mime="application/pdf", use_container_width=True)
+        try:
+            lr_pdf = markdown_to_pdf(lr.get("fn","trip.md").replace(".md","").replace("_"," "), lr.get("fc",""))
+            pdf_ok = len(lr_pdf) > 100
+        except Exception as ex:
+            lr_pdf = b""
+            pdf_ok = False
+        if pdf_ok:
+            st.markdown(_dl_pdf_link(lr_pdf, lr.get("fn","trip.md").replace(".md",".pdf")), unsafe_allow_html=True)
         else:
-            st.button("PDF", disabled=True, use_container_width=True)
+            st.markdown(f'<span style="color:#4a6a85;font-size:0.82rem;">PDF unavailable</span>', unsafe_allow_html=True)
     with c_in:
         st.markdown(f"<div class='save-bar'>{ICON('folder',14)} <code>travel_plans/{lr.get('fn','')}</code></div>", unsafe_allow_html=True)
     st.markdown(
@@ -993,7 +1010,8 @@ if lr and not generate:
         <div class="metric-box"><div class="metric-val">{ICON('check',16)}</div><div class="metric-lbl">{ICON('map',11)} {lr.get('to_city','?')[:3]}</div></div>
         </div>""", unsafe_allow_html=True)
 
-if generate:
+if st.session_state.trigger_generation:
+    st.session_state.trigger_generation = False
     to_city = fd.get("to_city","")
     if not to_city:
         st.warning("Please select a destination city.")
@@ -1196,9 +1214,9 @@ f"""<div class="metric-row anim-slide" style="margin-bottom:0.6rem">
                 with pdf_col:
                     pdf_data = markdown_to_pdf(fn.replace(".md", "").replace("_", " "), fc)
                     if len(pdf_data) > 100:
-                        st.download_button("PDF", data=pdf_data, file_name=fn.replace(".md", ".pdf"), mime="application/pdf", use_container_width=True)
+                        st.markdown(_dl_pdf_link(pdf_data, fn.replace(".md", ".pdf")), unsafe_allow_html=True)
                     else:
-                        st.button("PDF", disabled=True, use_container_width=True)
+                        st.markdown(f'<span style="color:#4a6a85;font-size:0.82rem;">PDF unavailable</span>', unsafe_allow_html=True)
                 with info_col:
                     st.markdown(f"<div class='save-bar'>{ICON('folder',14)} Saved — <code>travel_plans/{fn}</code></div>", unsafe_allow_html=True)
 
@@ -1330,11 +1348,16 @@ if st.session_state.approval_pending and st.session_state.pending_data:
             }, indent=2, default=str)
             st.download_button("JSON", data=jc, file_name=fj, mime="application/json", use_container_width=True)
         with pdf_col:
-            pdf_data = markdown_to_pdf(fn.replace(".md", "").replace("_", " "), fc)
-            if len(pdf_data) > 100:
-                st.download_button("PDF", data=pdf_data, file_name=fn.replace(".md", ".pdf"), mime="application/pdf", use_container_width=True)
+            try:
+                pdf_data = markdown_to_pdf(fn.replace(".md", "").replace("_", " "), fc)
+                pdf_ok = len(pdf_data) > 100
+            except Exception:
+                pdf_data = b""
+                pdf_ok = False
+            if pdf_ok:
+                st.markdown(_dl_pdf_link(pdf_data, fn.replace(".md", ".pdf")), unsafe_allow_html=True)
             else:
-                st.button("PDF", disabled=True, use_container_width=True)
+                st.markdown(f'<span style="color:#4a6a85;font-size:0.82rem;">PDF unavailable</span>', unsafe_allow_html=True)
         with info_col:
             st.markdown(f"<div class='save-bar'>{ICON('folder',14)} Saved — <code>travel_plans/{fn}</code></div>", unsafe_allow_html=True)
 

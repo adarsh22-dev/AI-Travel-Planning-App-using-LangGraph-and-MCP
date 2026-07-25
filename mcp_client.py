@@ -52,6 +52,8 @@ async def _aviation_api_call(endpoint: str, params: dict = None):
     if params:
         p.update(params)
     resp = await asyncio.to_thread(requests.get, url, params=p, timeout=15)
+    if resp.status_code != 200:
+        return {"error": f"AviationStack API returned {resp.status_code}", "endpoint": endpoint}
     return resp.json()
 
 async def aviation_mcp_call(tool_name: str, tool_args: dict = None):

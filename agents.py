@@ -162,13 +162,15 @@ def flight_agent(state: TravelState):
     query = state["user_query"]
     model = state.get("model_name", "llama-3.3-70b-versatile")
 
-    airports = _run_async(aviation_mcp_call("list_airports"))
-    airlines = _run_async(aviation_mcp_call("list_airlines"))
+    try:
+        airports = _run_async(aviation_mcp_call("list_airports"))
+    except Exception as e:
+        airports = f"Error fetching airports: {e}"
 
-    if isinstance(airports, Exception):
-        airports = str(airports)
-    if isinstance(airlines, Exception):
-        airlines = str(airlines)
+    try:
+        airlines = _run_async(aviation_mcp_call("list_airlines"))
+    except Exception as e:
+        airlines = f"Error fetching airlines: {e}"
 
     prompt = FLIGHT_PROMPT_TEMPLATE.format(
         query=query,
@@ -191,7 +193,10 @@ def hotel_agent(state: TravelState):
     query = state["user_query"]
     model = state.get("model_name", "llama-3.3-70b-versatile")
 
-    raw = _run_async(tavily_mcp_search(f"Best hotels for {query}"))
+    try:
+        raw = _run_async(tavily_mcp_search(f"Best hotels for {query}"))
+    except Exception as e:
+        raw = f"Hotel search failed: {e}"
     prompt = HOTEL_PROMPT_TEMPLATE.format(query=query, raw_data=str(raw)[:4000])
 
     response = _llm_invoke(HOTEL_SYSTEM_PROMPT, prompt, model)
@@ -214,13 +219,15 @@ def weather_agent(state: TravelState):
     if not city:
         city = extract_destination(query, model)
 
-    w = _run_async(weather_mcp_search(city))
-    f = _run_async(forecast_mcp_search(city))
+    try:
+        w = _run_async(weather_mcp_search(city))
+    except Exception as e:
+        w = f"Weather fetch failed: {e}"
 
-    if isinstance(w, Exception):
-        w = str(w)
-    if isinstance(f, Exception):
-        f = str(f)
+    try:
+        f = _run_async(forecast_mcp_search(city))
+    except Exception as e:
+        f = f"Forecast fetch failed: {e}"
 
     prompt = WEATHER_PROMPT_TEMPLATE.format(
         city=city,
