@@ -22,13 +22,23 @@ from prompts import (
 from state import TravelState
 
 
+FALLBACK_MODELS = ["llama-3.1-8b-instant", "gemma2-9b-it", "mixtral-8x7b-32768"]
+
 def _llm_text(system: str, prompt: str, model: str = "llama-3.3-70b-versatile") -> str:
-    llm = get_llm(model)
-    response = llm.invoke([
-        SystemMessage(content=system),
-        HumanMessage(content=prompt),
-    ])
-    return response.content
+    _models = [model] + [m for m in FALLBACK_MODELS if m != model]
+    for m in _models:
+        llm = get_llm(m)
+        try:
+            response = llm.invoke([
+                SystemMessage(content=system),
+                HumanMessage(content=prompt),
+            ])
+            return response.content
+        except Exception as e:
+            if "429" in str(e) or "rate_limit" in str(e).lower():
+                continue
+            raise
+    raise Exception(f"All models hit rate limit. Last error: {e}")
 
 
 def _json_from_llm(text: str) -> dict:
@@ -307,7 +317,6 @@ def human_approval_agent(state: TravelState):
 def final_response_agent(state: TravelState):
     t0 = time.time()
     model = state.get("model_name", "llama-3.3-70b-versatile")
-    llm = get_llm(model)
 
     if state.get("approved"):
         prompt = f"""
@@ -344,10 +353,25 @@ Trip constraints:
 {state.get('trip_constraints', {})}
 """
 
-    response = llm.invoke([
-        SystemMessage(content=FINAL_RESPONSE_SYSTEM_PROMPT),
-        HumanMessage(content=prompt),
-    ])
+    _models = [model] + [m for m in FALLBACK_MODELS if m != model]
+    response = None
+    last_err = None
+    for m in _models:
+        llm = get_llm(m)
+        try:
+            response = llm.invoke([
+                SystemMessage(content=FINAL_RESPONSE_SYSTEM_PROMPT),
+                HumanMessage(content=prompt),
+            ])
+            break
+        except Exception as e:
+            last_err = e
+            if "429" in str(e) or "rate_limit" in str(e).lower():
+                continue
+            raise
+
+    if response is None:
+        raise last_err
 
     return {
         "final_response": response.content,
