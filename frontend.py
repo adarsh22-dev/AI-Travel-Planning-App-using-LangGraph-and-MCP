@@ -23,25 +23,7 @@ CACHE_DIR = os.path.join(os.path.dirname(__file__), ".travel_cache")
 AUTOSAVE_FILE = os.path.join(CACHE_DIR, "autosave.json")
 HISTORY_FILE = os.path.join(CACHE_DIR, "history.json")
 
-_FONT_PATH = None
-_FONT_PATH_B = None
-try:
-    import urllib.request
-    _base = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts/master/ttf"
-    _fp = os.path.join(CACHE_DIR, "DejaVuSans.ttf")
-    _fb = os.path.join(CACHE_DIR, "DejaVuSans-Bold.ttf")
-    if not os.path.exists(_fp):
-        with urllib.request.urlopen(f"{_base}/DejaVuSans.ttf", timeout=10) as r:
-            with open(_fp, "wb") as f:
-                f.write(r.read())
-    if not os.path.exists(_fb):
-        with urllib.request.urlopen(f"{_base}/DejaVuSans-Bold.ttf", timeout=10) as r:
-            with open(_fb, "wb") as f:
-                f.write(r.read())
-    if os.path.exists(_fp) and os.path.exists(_fb):
-        _FONT_PATH, _FONT_PATH_B = _fp, _fb
-except Exception:
-    pass
+# PDF uses built-in Helvetica font — no external font download needed
 
 def autosave(data):
     os.makedirs(CACHE_DIR, exist_ok=True)
@@ -117,32 +99,26 @@ def markdown_to_pdf(title: str, body: str) -> bytes:
         pdf = FPDF()
         pdf.add_page()
         pdf.set_auto_page_break(auto=True, margin=15)
-        _fn, _fb = "DV", "DV"
-        if _FONT_PATH and os.path.exists(_FONT_PATH):
-            pdf.add_font("DV", "", _FONT_PATH, uni=True)
-            pdf.add_font("DV", "B", _FONT_PATH_B, uni=True)
-        else:
-            _fn, _fb = "Helvetica", "Helvetica"
-        _san = (lambda t: t.encode("latin-1", "replace").decode("latin-1")) if _fn == "Helvetica" else lambda t: t
+        _san = lambda t: t.encode("latin-1", "replace").decode("latin-1")
 
         pdf.set_title(title[:128])
-        pdf.set_font(_fb, "B", 14)
+        pdf.set_font("Helvetica", "B", 14)
         pdf.cell(0, 10, _san(title[:128]), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(3)
-        pdf.set_font(_fn, "", 9)
+        pdf.set_font("Helvetica", "", 9)
         for line in (body or "").split("\n"):
             clean = line.strip()
             if not clean:
                 pdf.ln(2)
             elif clean.startswith("###") or clean.startswith("##"):
-                pdf.set_font(_fb, "B", 11)
+                pdf.set_font("Helvetica", "B", 11)
                 pdf.cell(0, 6, _san(clean.lstrip("#").strip()[:120]), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-                pdf.set_font(_fn, "", 9)
+                pdf.set_font("Helvetica", "", 9)
                 pdf.ln(2)
             elif clean.startswith("**") and clean.endswith("**"):
-                pdf.set_font(_fb, "B", 10)
+                pdf.set_font("Helvetica", "B", 10)
                 pdf.cell(0, 5, _san(clean.strip("*")[:120]), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-                pdf.set_font(_fn, "", 9)
+                pdf.set_font("Helvetica", "", 9)
             else:
                 txt = _san(clean.replace("**","").replace("*","").replace("`","").replace("_","")[:200])
                 if len(txt) > 90:
