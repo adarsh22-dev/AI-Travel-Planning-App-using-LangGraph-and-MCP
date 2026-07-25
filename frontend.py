@@ -393,9 +393,27 @@ button[kind="secondary"]:hover{{border-color:{ACCENT}!important;color:#fff!impor
   padding-left:0!important;padding-right:0!important;max-width:100%!important
 }}
 .block-container {{padding-left:0!important;padding-right:0!important;max-width:100%!important}}
-.block-container > div:first-child > div:first-child > div:first-child {{padding-left:1.5rem!important;padding-right:1.5rem!important;max-width:min(1200px,100%);margin:0 auto}}
+.block-container > div:first-child > div:first-child > div:first-child {{padding-left:1.5rem!important;padding-right:1.5rem!important;max-width:min(1400px,100%);margin:0 auto}}
 @media(max-width:768px){{.block-container > div:first-child > div:first-child > div:first-child {{padding-left:1rem!important;padding-right:1rem!important}}}}
 
+/* ── Desktop wide (>1200px) ── */
+@media(min-width:1201px){{
+.hero-title{{font-size:clamp(2rem,3.5vw,3rem)!important}}
+.hero-sub{{max-width:700px;font-size:clamp(0.9rem,1.3vw,1.15rem)}}
+.hero-wrap{{min-height:clamp(400px,50vh,650px)!important}}
+.hero-ct{{min-height:clamp(400px,50vh,650px)!important;padding:2rem 3rem!important}}
+.search-card{{padding:2rem!important}}
+.metric-box{{padding:1rem 1.2rem}}
+.metric-val{{font-size:1.8rem}}
+.dash-stat{{padding:0.8rem 1rem}}
+.dash-stat-val{{font-size:1.5rem}}
+.result-card{{padding:1.2rem}}
+.photo-grid{{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))!important;gap:1rem}}
+.photo-grid img{{height:180px!important}}
+.final-card{{padding:2rem!important;font-size:1rem!important}}
+.sec-head span{{font-size:1.2rem}}
+.stTabs [data-baseweb="tab"]{{font-size:0.9rem!important;padding:0.5rem 1.2rem!important}}
+}}
 /* ── Responsive ── */
 @media(max-width:992px){{
 .block-container > div:first-child > div:first-child > div:first-child {{padding-left:1.2rem!important;padding-right:1.2rem!important;max-width:100%!important}}
