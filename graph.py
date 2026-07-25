@@ -82,18 +82,23 @@ def build_graph():
     graph.add_edge("human_approval", "final_response")
     graph.add_edge("final_response", END)
 
-    try:
-        import psycopg
-        from langgraph.checkpoint.postgres import PostgresSaver
-        _conn = psycopg.connect(DATABASE_URL)
-        _checkpointer = PostgresSaver(_conn)
-        _checkpointer.setup()
-        app = graph.compile(checkpointer=_checkpointer)
-        print("[OK] PostgreSQL connected — memory enabled")
-    except Exception as e:
+    if DATABASE_URL:
+        try:
+            import psycopg
+            from langgraph.checkpoint.postgres import PostgresSaver
+            _conn = psycopg.connect(DATABASE_URL)
+            _checkpointer = PostgresSaver(_conn)
+            _checkpointer.setup()
+            app = graph.compile(checkpointer=_checkpointer)
+            print("[OK] PostgreSQL connected — memory enabled")
+        except Exception as e:
+            from langgraph.checkpoint.memory import MemorySaver
+            app = graph.compile(checkpointer=MemorySaver())
+            print(f"[WARN] PostgreSQL unavailable ({e}) — using in-memory checkpointer")
+    else:
         from langgraph.checkpoint.memory import MemorySaver
         app = graph.compile(checkpointer=MemorySaver())
-        print(f"[WARN] PostgreSQL unavailable ({e}) — using in-memory checkpointer")
+        print("[INFO] No DATABASE_URL set — using in-memory checkpointer")
 
     return app
 

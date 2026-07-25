@@ -12,10 +12,12 @@ except ImportError:
     from fpdf import XPos, YPos
 from graph import app
 from mcp_client import get_destination_photos_sync, get_destination_events_sync
+import re as _re
 import markdown as _mdlib
 
 def _md(text):
-    return _mdlib.markdown(text or "", extensions=["nl2br"])
+    text = _re.sub(r'<[^>]*>', '', text or "")
+    return _mdlib.markdown(text, extensions=["nl2br"])
 
 st.set_page_config(page_title="AI Travel Planner", page_icon=":airplane:", layout="wide")
 
@@ -676,11 +678,15 @@ def wizard_indicator(current):
     return html
 
 def haversine_km(lat1, lon1, lat2, lon2):
+    import math
     R = 6371
-    dlat = (lat2 - lat1) * 3.14159 / 180
-    dlon = (lon2 - lon1) * 3.14159 / 180
-    a = (dlat/2)**2 + (dlon/2)**2
-    return R * 2 * (a ** 0.5 if a <= 1 else 1.0)
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    lat1_r = math.radians(lat1)
+    lat2_r = math.radians(lat2)
+    a = (math.sin(dlat / 2)) ** 2 + math.cos(lat1_r) * math.cos(lat2_r) * (math.sin(dlon / 2)) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def create_route_map(from_city, to_city):
@@ -908,10 +914,7 @@ elif step == 5:
         generate = st.button("Plan My Trip", use_container_width=True, type="primary")
     st.markdown("</div>", unsafe_allow_html=True)
 
-try:
-    generate
-except NameError:
-    generate = False
+generate = False
 
 # ── Previous result (persists across reruns) ──
 if st.session_state.viewing_history:
@@ -1016,7 +1019,7 @@ if generate:
         if needs_flight: user_query += " Include flights."
         if needs_hotel: user_query += " Include hotels."
 
-        config = {"configurable": {"thread_id": f"{from_city[:3]}_{to_city[:3]}_{dep_date}"}}
+        config = {"configurable": {"thread_id": f"{from_city[:3]}_{to_city[:3]}_{dep_date}_{id(st.session_state)}"}}
 
         st.markdown("---")
         st.markdown(f"<div class='sec-head'>{ICON('layers',16)}<span>AI Agents Working</span></div>", unsafe_allow_html=True)

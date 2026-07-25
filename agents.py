@@ -24,6 +24,15 @@ from state import TravelState
 
 FALLBACK_MODELS = ["llama-3.1-8b-instant", "gemma2-9b-it", "mixtral-8x7b-32768"]
 
+def _run_async(coro):
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
+
 def _llm_text(system: str, prompt: str, model: str = "llama-3.3-70b-versatile") -> str:
     return _llm_invoke(system, prompt, model).content
 
@@ -45,10 +54,13 @@ def _llm_invoke(system: str, prompt: str, model: str = "llama-3.3-70b-versatile"
     raise last_err
 
 
-def _json_from_llm(text: str) -> dict:
-    start = text.index("{")
-    end = text.rindex("}") + 1
-    return json.loads(text[start:end])
+def _json_from_llm(text: str) -> dict | None:
+    try:
+        start = text.index("{")
+        end = text.rindex("}") + 1
+        return json.loads(text[start:end])
+    except (ValueError, json.JSONDecodeError):
+        return None
 
 
 def supervisor_agent(state: TravelState):
@@ -131,14 +143,14 @@ User request:
         model,
     )
 
-    parsed = _json_from_llm(raw)
-    selected = parsed["selected_agents"]
-    constraints = parsed["trip_constraints"]
+    parsed = _json_from_llm(raw) or {}
+    selected = parsed.get("selected_agents", [])
+    constraints = parsed.get("trip_constraints", {})
 
     return {
         "selected_agents": selected,
         "trip_constraints": constraints,
-        "supervisor_reasoning": parsed["reasoning"],
+        "supervisor_reasoning": parsed.get("reasoning", ""),
         "messages": [AIMessage(content="Supervisor created the agent plan.")],
         "llm_calls": state.get("llm_calls", 0) + 1,
         "agent_times": {"supervisor": round(time.time() - t0, 2)},
@@ -150,8 +162,8 @@ def flight_agent(state: TravelState):
     query = state["user_query"]
     model = state.get("model_name", "llama-3.3-70b-versatile")
 
-    airports = asyncio.run(aviation_mcp_call("list_airports"))
-    airlines = asyncio.run(aviation_mcp_call("list_airlines"))
+    airports = _run_async(aviation_mcp_call("list_airports"))
+    airlines = _run_async(aviation_mcp_call("list_airlines"))
 
     if isinstance(airports, Exception):
         airports = str(airports)
@@ -179,7 +191,7 @@ def hotel_agent(state: TravelState):
     query = state["user_query"]
     model = state.get("model_name", "llama-3.3-70b-versatile")
 
-    raw = asyncio.run(tavily_mcp_search(f"Best hotels for {query}"))
+    raw = _run_async(tavily_mcp_search(f"Best hotels for {query}"))
     prompt = HOTEL_PROMPT_TEMPLATE.format(query=query, raw_data=str(raw)[:4000])
 
     response = _llm_invoke(HOTEL_SYSTEM_PROMPT, prompt, model)
@@ -202,8 +214,8 @@ def weather_agent(state: TravelState):
     if not city:
         city = extract_destination(query, model)
 
-    w = asyncio.run(weather_mcp_search(city))
-    f = asyncio.run(forecast_mcp_search(city))
+    w = _run_async(weather_mcp_search(city))
+    f = _run_async(forecast_mcp_search(city))
 
     if isinstance(w, Exception):
         w = str(w)
@@ -292,7 +304,7 @@ def human_approval_agent(state: TravelState):
     })
 
     return {
-        "approved": feedback["approved"],
+        "approved": feedback.get("approved", False),
         "human_feedback": feedback.get("feedback", ""),
         "messages": [AIMessage(content="Human approval step completed.")],
     }

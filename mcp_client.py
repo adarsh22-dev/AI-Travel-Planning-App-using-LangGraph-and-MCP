@@ -1,17 +1,9 @@
-import os
 import asyncio
 import json
 from datetime import datetime
 import requests
-from dotenv import load_dotenv
-from langchain_groq import ChatGroq
+from config import get_llm, TAVILY_API_KEY, AVIATION_STACK_API_KEY, OPENWEATHER_API_KEY
 from tavily import TavilyClient
-
-load_dotenv(override=True)
-
-TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
-AVIATION_STACK_API_KEY = os.getenv("AVIATIONSTACK_API_KEY")
-OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 
 _tavily_client = None
 
@@ -59,7 +51,7 @@ async def _aviation_api_call(endpoint: str, params: dict = None):
     p = {"access_key": AVIATION_STACK_API_KEY}
     if params:
         p.update(params)
-    resp = await asyncio.to_thread(requests.get, url, params=p)
+    resp = await asyncio.to_thread(requests.get, url, params=p, timeout=15)
     return resp.json()
 
 async def aviation_mcp_call(tool_name: str, tool_args: dict = None):
@@ -79,10 +71,10 @@ WEATHER_BASE = "https://api.openweathermap.org/data/2.5"
 async def _weather_api_call(endpoint: str, city: str):
     url = f"{WEATHER_BASE}/{endpoint}"
     params = {"q": city, "appid": OPENWEATHER_API_KEY, "units": "metric"}
-    resp = await asyncio.to_thread(requests.get, url, params=params)
-    data = resp.json()
+    resp = await asyncio.to_thread(requests.get, url, params=params, timeout=15)
     if resp.status_code != 200:
-        return data
+        return {"error": f"API returned {resp.status_code}", "city": city}
+    data = resp.json()
     return data
 
 async def weather_mcp_search(city: str):
@@ -242,9 +234,6 @@ async def get_destination_events(city: str):
         return await tavily_mcp_search(q)
     except:
         return ""
-
-def get_llm(model_name: str = "llama-3.3-70b-versatile"):
-    return ChatGroq(model=model_name)
 
 def parse_json(text: str):
     start = text.find('{')
