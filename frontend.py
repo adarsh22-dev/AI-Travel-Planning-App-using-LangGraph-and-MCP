@@ -565,9 +565,22 @@ with st.sidebar:
     st.markdown("<div style='margin-top:1rem;padding:0.3rem 0.5rem;font-size:0.65rem;color:#4a6a85;display:flex;align-items:center;gap:0.3rem;'>" + ICON('database',10) + " Auto-saved</div>", unsafe_allow_html=True)
 
 # ── Hero ──────────────────────────────────────────────────────────────────────
+BANNER_PATH = os.path.join(os.path.dirname(__file__), "banner.png")
+
+@st.cache_data(show_spinner=False)
+def _banner_b64():
+    if os.path.exists(BANNER_PATH):
+        import base64
+        with open(BANNER_PATH, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+    return None
+
+_b64 = _banner_b64()
+_banner_src = f"data:image/png;base64,{_b64}" if _b64 else "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1400&q=80"
+
 st.markdown(
 f"""<div class="hero-wrap anim-fade">
-<img class="hero-bg" src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1400&q=80" alt=""/>
+<img class="hero-bg" src="{_banner_src}" alt=""/>
 <div class="hero-ct">
 <div class="hero-title">{ICON('compass',26)} AI Travel Planner</div>
 <div class="hero-sub">Tell us where you want to go — our AI agents build a complete trip with flights, hotels, weather &amp; itinerary.</div>
