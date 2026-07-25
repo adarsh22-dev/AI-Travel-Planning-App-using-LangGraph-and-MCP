@@ -277,11 +277,11 @@ div.stButton > button[data-testid*="hist_"]{{background:rgba(14,26,43,0.5) !impo
 div.stButton > button[data-testid*="hist_"]:hover{{border-color:{ACCENT} !important;color:#fff !important;background:rgba(17,30,50,0.9) !important}}
 
 /* ── Hero ── */
-.hero-wrap{{position:relative;border-radius:20px;overflow:hidden;margin-bottom:1.5rem;height:210px;background:linear-gradient(135deg,#0a1628 0%,{darken(ACCENT,0.65)} 50%,#0a1628 100%);background-size:200% 200%;animation:gradientShift 8s ease infinite}}
+.hero-wrap{{position:relative;width:100vw;margin-left:calc(-50vw + 50%);border-radius:0;overflow:hidden;margin-bottom:1.5rem;height:240px;background:linear-gradient(135deg,#0a1628 0%,{darken(ACCENT,0.65)} 50%,#0a1628 100%);background-size:200% 200%;animation:gradientShift 8s ease infinite}}
 .hero-bg{{width:100%;height:100%;object-fit:cover;display:block;filter:brightness(0.18)saturate(0.3);position:absolute;top:0;left:0}}
-.hero-ct{{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1.5rem;background:rgba(0,0,0,0.1);backdrop-filter:blur(2px)}}
-.hero-title{{font-size:2.3rem;font-weight:800;color:#fff;margin:0 0 0.25rem;display:flex;align-items:center;gap:0.5rem}}
-.hero-sub{{color:#94adc8;font-size:0.9rem;max-width:520px;line-height:1.5}}
+.hero-ct{{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1.5rem 2rem;background:rgba(0,0,0,0.1);backdrop-filter:blur(2px)}}
+.hero-title{{font-size:2.5rem;font-weight:800;color:#fff;margin:0 0 0.25rem;display:flex;align-items:center;gap:0.5rem}}
+.hero-sub{{color:#94adc8;font-size:1rem;max-width:600px;line-height:1.5}}
 
 /* ── Search Card ── */
 .search-card{{background:rgba(14,22,35,0.7);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(30,48,68,0.4);border-radius:18px;padding:1.6rem;margin-bottom:1.5rem;transition:all 0.3s ease}}
@@ -387,6 +387,14 @@ button[kind="secondary"]:hover{{border-color:{ACCENT}!important;color:#fff!impor
 
 /* ── Hide ── */
 #MainMenu,footer,header{{visibility:hidden}}
+
+/* ── Full-width block reset ── */
+.main > div[data-testid="stVerticalBlock"] > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child {{
+  padding-left:0!important;padding-right:0!important;max-width:100%!important
+}}
+.block-container {{padding-left:0!important;padding-right:0!important;max-width:100%!important}}
+.block-container > div:first-child > div:first-child > div:first-child {{padding-left:1.5rem!important;padding-right:1.5rem!important;max-width:900px;margin:0 auto}}
+@media(max-width:768px){{.block-container > div:first-child > div:first-child > div:first-child {{padding-left:1rem!important;padding-right:1rem!important}}}}
 
 /* ── Responsive ── */
 @media(max-width:768px){{
