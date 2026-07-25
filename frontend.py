@@ -6,6 +6,10 @@ from datetime import datetime, timedelta
 from langchain_core.messages import HumanMessage
 from langgraph.types import Command
 from fpdf import FPDF
+try:
+    from fpdf.enums import XPos, YPos
+except ImportError:
+    from fpdf import XPos, YPos
 from graph import app
 from mcp_client import get_destination_photos_sync, get_destination_events_sync
 import markdown as _mdlib
@@ -19,38 +23,25 @@ CACHE_DIR = os.path.join(os.path.dirname(__file__), ".travel_cache")
 AUTOSAVE_FILE = os.path.join(CACHE_DIR, "autosave.json")
 HISTORY_FILE = os.path.join(CACHE_DIR, "history.json")
 
-def _ensure_font():
-    os.makedirs(CACHE_DIR, exist_ok=True)
-    _candidates = [
-        "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf",
-        "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts/master/ttf/DejaVuSans.ttf",
-    ]
-    _font_path = os.path.join(CACHE_DIR, "DejaVuSans.ttf")
-    _font_path_b = os.path.join(CACHE_DIR, "DejaVuSans-Bold.ttf")
-    if not os.path.exists(_font_path):
-        for url in _candidates:
-            try:
-                import urllib.request
-                urllib.request.urlretrieve(url, _font_path)
-                if os.path.exists(_font_path):
-                    break
-            except Exception:
-                pass
-    if not os.path.exists(_font_path_b):
-        for url in [u.replace("DejaVuSans.ttf", "DejaVuSans-Bold.ttf") for u in _candidates]:
-            try:
-                import urllib.request
-                urllib.request.urlretrieve(url, _font_path_b)
-                if os.path.exists(_font_path_b):
-                    break
-            except Exception:
-                pass
-    return (
-        _font_path if os.path.exists(_font_path) else None,
-        _font_path_b if os.path.exists(_font_path_b) else None,
-    )
-
-_FONT_PATH, _FONT_PATH_B = _ensure_font()
+_FONT_PATH = None
+_FONT_PATH_B = None
+try:
+    import urllib.request
+    _base = "https://raw.githubusercontent.com/dejavu-fonts/dejavu-fonts/master/ttf"
+    _fp = os.path.join(CACHE_DIR, "DejaVuSans.ttf")
+    _fb = os.path.join(CACHE_DIR, "DejaVuSans-Bold.ttf")
+    if not os.path.exists(_fp):
+        with urllib.request.urlopen(f"{_base}/DejaVuSans.ttf", timeout=10) as r:
+            with open(_fp, "wb") as f:
+                f.write(r.read())
+    if not os.path.exists(_fb):
+        with urllib.request.urlopen(f"{_base}/DejaVuSans-Bold.ttf", timeout=10) as r:
+            with open(_fb, "wb") as f:
+                f.write(r.read())
+    if os.path.exists(_fp) and os.path.exists(_fb):
+        _FONT_PATH, _FONT_PATH_B = _fp, _fb
+except Exception:
+    pass
 
 def autosave(data):
     os.makedirs(CACHE_DIR, exist_ok=True)
@@ -136,7 +127,7 @@ def markdown_to_pdf(title: str, body: str) -> bytes:
 
         pdf.set_title(title[:128])
         pdf.set_font(_fb, "B", 14)
-        pdf.cell(0, 10, _san(title[:128]), new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 10, _san(title[:128]), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(3)
         pdf.set_font(_fn, "", 9)
         for line in (body or "").split("\n"):
@@ -145,19 +136,19 @@ def markdown_to_pdf(title: str, body: str) -> bytes:
                 pdf.ln(2)
             elif clean.startswith("###") or clean.startswith("##"):
                 pdf.set_font(_fb, "B", 11)
-                pdf.cell(0, 6, _san(clean.lstrip("#").strip()[:120]), new_x="LMARGIN", new_y="NEXT")
+                pdf.cell(0, 6, _san(clean.lstrip("#").strip()[:120]), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 pdf.set_font(_fn, "", 9)
                 pdf.ln(2)
             elif clean.startswith("**") and clean.endswith("**"):
                 pdf.set_font(_fb, "B", 10)
-                pdf.cell(0, 5, _san(clean.strip("*")[:120]), new_x="LMARGIN", new_y="NEXT")
+                pdf.cell(0, 5, _san(clean.strip("*")[:120]), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 pdf.set_font(_fn, "", 9)
             else:
                 txt = _san(clean.replace("**","").replace("*","").replace("`","").replace("_","")[:200])
                 if len(txt) > 90:
                     pdf.multi_cell(0, 4, txt)
                 else:
-                    pdf.cell(0, 4.5, txt, new_x="LMARGIN", new_y="NEXT")
+                    pdf.cell(0, 4.5, txt, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         out = pdf.output()
         return bytes(out) if len(out) > 100 else b""
     except Exception:
