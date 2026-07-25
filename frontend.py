@@ -222,8 +222,15 @@ THEME_PRESETS = {
 
 CSS = f"""
 <style>
+:root {{
+  --a:{ACCENT}; --ag:{AGLOW}; --ad:{ADIM}; --at:{ATINT};
+  --bg:#080d14; --bc:rgba(14,22,35,0.75); --be:rgba(16,30,52,0.88);
+  --bo:rgba(30,48,68,0.4); --bl:rgba(30,48,68,0.2);
+  --t1:#e8f4ff; --t2:#c8dce8; --t3:#94a3b8; --t4:#6a8aaa;
+  --rs:8px; --rm:12px; --rl:16px; --rx:18px;
+}}
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-html,body,.stApp {{ font-family:'Inter',sans-serif; background:#080d14; scroll-behavior:smooth; }}
+html,body,.stApp {{ font-family:'Inter',sans-serif; background:#080d14; scroll-behavior:smooth; font-size:15px; }}
 ::-webkit-scrollbar {{ width:6px;height:6px; }}
 ::-webkit-scrollbar-track {{ background:#0a1520; }}
 ::-webkit-scrollbar-thumb {{ background:#1e3050;border-radius:3px; }}
@@ -266,9 +273,12 @@ html,body,.stApp {{ font-family:'Inter',sans-serif; background:#080d14; scroll-b
 .skel-block{{height:40px;width:100%;margin-bottom:0.5rem}}
 
 /* ── Sidebar ── */
-section[data-testid="stSidebar"]{{background:linear-gradient(180deg,#090e18 0%,#0b1424 100%)!important;border-right:1px solid #141f30!important;padding-top:0.5rem!important}}
+section[data-testid="stSidebar"]{{background:linear-gradient(180deg,#090e18 0%,#0b1424 100%)!important;border-right:1px solid #141f30!important;padding-top:0.5rem!important;min-width:220px!important;max-width:300px!important;width:clamp(220px,22vw,300px)!important}}
+/* Sidebar collapse button styling */
+button[data-testid*="collapsed"] {{background:rgba(14,22,35,0.6)!important;border:1px solid rgba(30,48,68,0.4)!important;border-radius:0 10px 10px 0!important;color:#94a3b8!important}}
+button[data-testid*="collapsed"]:hover {{border-color:{ACCENT}!important;color:{ACCENT}!important}}
 .sidebar-title{{color:#e8f4ff;font-size:1rem;font-weight:700;display:flex;align-items:center;gap:0.4rem;padding:0 0.5rem}}
-.sidebar-sec{{color:#6a8aaa;font-size:0.65rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;margin:1.2rem 0.5rem 0.4rem;display:flex;align-items:center;gap:0.35rem;padding:0 0.3rem}}
+.sidebar-sec{{color:#94a3b8;font-size:0.65rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;margin:1.2rem 0.5rem 0.4rem;display:flex;align-items:center;gap:0.35rem;padding:0 0.3rem}}
 .sidebar-chip{{background:rgba(14,26,43,0.7);border:1px solid #1a2e44;border-radius:8px;padding:0.4rem 0.7rem;margin:0 0.5rem 0.35rem;font-size:0.82rem;color:#7aa8cc;display:flex;align-items:center;gap:0.4rem;transition:0.2s;backdrop-filter:blur(4px)}}
 .sidebar-chip:hover{{border-color:{ACCENT};color:#c0e0ff;background:rgba(20,40,70,0.8)}}
 .history-item{{background:rgba(14,26,43,0.5);border:1px solid #1a2e44;border-radius:8px;padding:0.4rem 0.6rem;margin:0 0.5rem 0.25rem;font-size:0.74rem;color:#7aa8cc;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:0.3rem;line-height:1.3;backdrop-filter:blur(4px)}}
@@ -277,8 +287,8 @@ div.stButton > button[data-testid*="hist_"]{{background:rgba(14,26,43,0.5) !impo
 div.stButton > button[data-testid*="hist_"]:hover{{border-color:{ACCENT} !important;color:#fff !important;background:rgba(17,30,50,0.9) !important}}
 
 /* ── Hero ── */
-.hero-wrap{{position:relative;left:50%;right:50%;width:100vw;margin-left:-50vw;margin-right:-50vw;border-radius:0;overflow:hidden;margin-bottom:1.5rem;min-height:clamp(180px,45vh,600px);background-size:auto,contain;background-position:center;background-repeat:no-repeat}}
-.hero-ct{{position:relative;z-index:1;min-height:clamp(180px,45vh,600px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:clamp(1rem,3vw,2rem);backdrop-filter:blur(1px)}}
+.hero-wrap{{position:relative;left:50%;right:50%;width:100vw;margin-left:-50vw;margin-right:-50vw;border-radius:0;overflow:hidden;margin-bottom:1.5rem;min-height:clamp(180px,45vh,600px);background-size:auto,cover;background-position:center;background-repeat:no-repeat}}
+.hero-ct{{position:relative;z-index:1;min-height:clamp(180px,45vh,600px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:clamp(1rem,3vw,2rem);backdrop-filter:blur(3px)}}
 .hero-title{{font-size:clamp(1.2rem,4vw,2.5rem);font-weight:800;color:#fff;margin:0 0 0.25rem;display:flex;align-items:center;gap:clamp(0.3rem,1vw,0.5rem)}}
 .hero-title svg{{width:clamp(20px,3vw,32px);height:clamp(20px,3vw,32px)}}
 .hero-sub{{color:#94adc8;font-size:clamp(0.75rem,1.5vw,1rem);max-width:min(90vw,600px);line-height:1.5}}
@@ -294,9 +304,10 @@ div.stButton > button[data-testid*="hist_"]:hover{{border-color:{ACCENT} !import
 .qd-label{{position:absolute;bottom:5px;left:0;right:0;text-align:center;color:#fff;font-size:0.76rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:3px;text-shadow:0 1px 4px rgba(0,0,0,0.6)}}
 
 /* ── Buttons ── */
-div[data-testid="stButton"]>button{{background:linear-gradient(135deg,{ACCENT} 0%,{darken(ACCENT,0.25)} 50%,{darken(ACCENT,0.5)} 100%)!important;color:#fff!important;border:none!important;border-radius:14px!important;padding:0.8rem 2rem!important;font-size:1rem!important;font-weight:700!important;letter-spacing:0.02em!important;box-shadow:0 4px 24px {AGLOW},0 4px 12px rgba(0,0,0,0.4)!important;transition:all 0.3s cubic-bezier(0.4,0,0.2,1)!important}}
+div[data-testid="stButton"]>button{{background:linear-gradient(135deg,{ACCENT} 0%,{darken(ACCENT,0.25)} 50%,{darken(ACCENT,0.5)} 100%)!important;color:#fff!important;border:none!important;border-radius:14px!important;padding:0.8rem 2rem!important;font-size:1rem!important;font-weight:700!important;letter-spacing:0.02em!important;box-shadow:0 4px 24px {AGLOW},0 4px 12px rgba(0,0,0,0.4)!important;transition:all 0.3s cubic-bezier(0.4,0,0.2,1)!important;box-sizing:border-box!important;max-width:100%!important;white-space:normal!important;word-break:break-word!important}}
 div[data-testid="stButton"]>button:hover{{box-shadow:0 8px 40px {AGLOW},0 6px 18px rgba(0,0,0,0.5)!important;transform:translateY(-3px) scale(1.01)!important}}
 div[data-testid="stButton"]>button:active{{transform:translateY(0) scale(0.98)!important}}
+div[data-testid="stButton"] {{width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important}}
 
 /* ── Status Widgets ── */
 [data-testid="stStatusWidget"]{{background:rgba(14,26,46,0.7)!important;backdrop-filter:blur(8px)!important;border:1px solid rgba(30,48,80,0.4)!important;border-radius:14px!important;margin-bottom:0.6rem!important;transition:all 0.3s ease!important}}
@@ -307,7 +318,7 @@ div[data-testid="stButton"]>button:active{{transform:translateY(0) scale(0.98)!i
 [data-testid="stStatusWidget"] a,[data-testid="stStatusWidget"] svg{{color:{ACCENT}!important}}
 
 /* ── Sections ── */
-.sec-head{{display:flex;align-items:center;gap:0.5rem;margin:1.5rem 0 0.6rem;padding-bottom:0.5rem;border-bottom:1px solid rgba(26,42,62,0.6)}}
+.sec-head{{display:flex;align-items:center;gap:0.5rem;margin:1rem 0 0.5rem;padding-bottom:0.4rem;border-bottom:1px solid rgba(26,42,62,0.6)}}
 .sec-head span{{font-size:1.1rem;font-weight:700;color:#e0edf8}}
 
 /* ── Metrics ── */
@@ -315,7 +326,7 @@ div[data-testid="stButton"]>button:active{{transform:translateY(0) scale(0.98)!i
 .metric-box{{flex:1;background:rgba(14,22,35,0.7);backdrop-filter:blur(8px);border:1px solid rgba(30,46,68,0.4);border-radius:14px;padding:0.7rem 0.9rem;text-align:center;transition:all 0.3s ease}}
 .metric-box:hover{{border-color:{ACCENT};transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.3)}}
 .metric-val{{font-size:1.6rem;font-weight:700;color:{ACCENT}}}
-.metric-lbl{{font-size:0.65rem;color:#5a7a96;margin-top:0.1rem;text-transform:uppercase;letter-spacing:0.08em;display:flex;align-items:center;justify-content:center;gap:0.25rem}}
+.metric-lbl{{font-size:0.65rem;color:#94a3b8;margin-top:0.1rem;text-transform:uppercase;letter-spacing:0.08em;display:flex;align-items:center;justify-content:center;gap:0.25rem}}
 
 /* ── Final Card ── */
 .final-card{{background:rgba(12,26,46,0.8);backdrop-filter:blur(12px);border:1px solid #1e3a5c;border-left:4px solid {ACCENT};border-radius:16px;padding:1.6rem;line-height:1.8;color:#cce0f5;font-size:0.92rem;animation:scaleIn 0.3s ease-out}}
@@ -323,10 +334,21 @@ div[data-testid="stButton"]>button:active{{transform:translateY(0) scale(0.98)!i
 /* ── Save Bar ── */
 .save-bar{{background:rgba(14,22,35,0.7);backdrop-filter:blur(8px);border:1px solid rgba(30,46,68,0.4);border-radius:12px;padding:0.7rem 1rem;color:#8ab8d8;font-size:0.84rem;margin-top:0.4rem;display:flex;align-items:center;gap:0.5rem}}
 
+/* ── Prevent column overflow ── */
+[data-testid="column"] {{min-width:0;overflow:hidden}}
+.search-card [data-testid="column"] {{min-width:0;max-width:100%;flex:1 1 0%}}
+
 /* ── Form Elements ── */
-.stTextArea textarea,.stSelectbox div[data-baseweb="select"],.stNumberInput input,.stDateInput input,.stMultiSelect div[data-baseweb="select"]{{background:rgba(10,21,32,0.7)!important;border:1px solid rgba(30,46,68,0.5)!important;border-radius:12px!important;color:#e8f4ff!important;font-size:0.93rem!important;transition:all 0.2s ease!important}}
-.stTextArea textarea:focus,.stSelectbox div[data-baseweb="select"]:focus,.stNumberInput input:focus,.stDateInput input:focus{{border-color:{ACCENT}!important;box-shadow:0 0 0 3px {AGLOW}!important}}
+.stTextArea textarea,.stNumberInput input,.stDateInput input{{background:rgba(16,30,55,0.85)!important;border:1px solid rgba(40,60,90,0.5)!important;border-radius:12px!important;color:#e8f4ff!important;font-size:0.93rem!important;transition:all 0.2s ease!important;max-width:100%!important;box-sizing:border-box!important}}
+.stSelectbox div[data-baseweb="select"],.stMultiSelect div[data-baseweb="select"]{{background:rgba(16,30,55,0.85)!important;border:1px solid rgba(40,60,90,0.5)!important;border-radius:12px!important;color:#e8f4ff!important;font-size:0.93rem!important;transition:all 0.2s ease!important;max-width:100%!important}}
+.stSelectbox div[data-baseweb="select"]:hover,.stMultiSelect div[data-baseweb="select"]:hover{{border-color:{ACCENT}!important}}
+.stTextArea textarea:focus,.stSelectbox div[data-baseweb="select"]:focus,.stNumberInput input:focus,.stDateInput input:focus,.stMultiSelect div[data-baseweb="select"]:focus{{border-color:{ACCENT}!important;box-shadow:0 0 0 3px {AGLOW}!important}}
 .stTextArea textarea::placeholder{{color:#4a6a85!important}}
+.stSelectbox,.stMultiSelect,.stNumberInput,.stDateInput,.stTextArea{{width:100%!important;min-width:0!important}}
+.stNumberInput > div,.stDateInput > div{{max-width:100%!important}}
+/* Selectbox inner text alignment fix */
+.stSelectbox div[data-baseweb="select"] > div {{overflow:hidden!important;text-overflow:ellipsis!important}}
+.stSelectbox div[data-baseweb="select"] [data-testid*="stMarkdown"] {{overflow:hidden!important}}
 .stRadio div[role="radiogroup"]{{gap:0.4rem!important}}
 .stRadio div[role="radiogroup"] label{{background:rgba(14,26,43,0.6)!important;backdrop-filter:blur(4px)!important;border:1px solid rgba(30,46,68,0.4)!important;border-radius:10px!important;padding:0.3rem 0.9rem!important;color:#7aa8cc!important;font-size:0.82rem!important;font-weight:500!important;transition:all 0.2s!important}}
 .stRadio div[role="radiogroup"] label:hover{{border-color:{ACCENT}!important;color:#c0e0ff!important}}
@@ -365,12 +387,12 @@ div[data-testid="stDownloadButton"]>button:hover{{border-color:{ACCENT}!importan
 .photo-grid img:hover{{transform:scale(1.03);border-color:{ACCENT}}}
 .result-card:hover{{border-color:{ACCENT};box-shadow:0 4px 16px rgba(0,0,0,0.3)}}
 .result-card h3,.result-card h4{{color:{ACCENT};font-size:0.9rem;font-weight:600;margin:0.5rem 0 0.3rem}}
-.result-card p,.result-card li{{color:#b0cce8;font-size:0.85rem;line-height:1.6;margin:0.15rem 0}}
+.result-card p,.result-card li{{color:#c8dce8;font-size:0.9rem;line-height:1.7;margin:0.15rem 0}}
 .result-card hr{{border:none;border-top:1px solid rgba(30,48,68,0.3);margin:0.5rem 0}}
 .dash-stat{{flex:1;background:rgba(14,22,35,0.7);backdrop-filter:blur(8px);border:1px solid rgba(30,46,68,0.4);border-radius:12px;padding:0.6rem 0.8rem;text-align:center;transition:0.2s}}
 .dash-stat:hover{{border-color:{ACCENT};transform:translateY(-2px)}}
 .dash-stat-val{{font-size:1.3rem;font-weight:700;color:{ACCENT}}}
-.dash-stat-lbl{{font-size:0.6rem;color:#5a7a96;text-transform:uppercase;letter-spacing:0.08em}}
+.dash-stat-lbl{{font-size:0.6rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em}}
 
 /* ── Timeline ── */
 .timeline{{position:relative;padding-left:1.8rem}}
@@ -378,7 +400,7 @@ div[data-testid="stDownloadButton"]>button:hover{{border-color:{ACCENT}!importan
 .tl-item{{position:relative;margin-bottom:1rem;padding-left:0.5rem;animation:slideUp 0.4s ease-out}}
 .tl-item::before{{content:'';position:absolute;left:-1.45rem;top:0.35rem;width:10px;height:10px;border-radius:50%;background:{ACCENT};border:2px solid #0a1520;box-shadow:0 0 6px {AGLOW}}}
 .tl-item h5{{color:#e0edf8;font-size:0.88rem;font-weight:600;margin:0 0 0.2rem}}
-.tl-item p{{color:#8aaccc;font-size:0.8rem;margin:0;line-height:1.4}}
+.tl-item p{{color:#94a3b8;font-size:0.8rem;margin:0;line-height:1.4}}
 
 /* ── Primary Buttons ── */
 button[kind="primary"]{{background:linear-gradient(135deg,{ACCENT} 0%,{darken(ACCENT,0.25)} 100%)!important;border-radius:12px!important}}
@@ -388,11 +410,37 @@ button[kind="secondary"]:hover{{border-color:{ACCENT}!important;color:#fff!impor
 /* ── Hide ── */
 #MainMenu,footer,header{{visibility:hidden}}
 
+/* ── Expander Fix ── */
+.stExpander {{margin-bottom:0.6rem!important;border-radius:14px;border:1px solid rgba(30,48,68,0.4);overflow:hidden}}
+.stExpander > details > summary {{padding:0.5rem 1rem!important;border-radius:0!important;background:rgba(14,22,35,0.5)!important;border-bottom:1px solid rgba(30,48,68,0.2);font-size:0.85rem!important;font-weight:600!important;color:#b0d0ea!important;gap:0.4rem;min-height:unset!important}}
+.stExpander > details > summary:hover {{background:rgba(20,30,50,0.7)!important}}
+.stExpander > details > div[data-testid*="stExpander"] > div > div:first-child {{padding:0.6rem 1rem!important;background:rgba(10,21,32,0.3)}}
+/* Fix nested block container inside expander */
+.stExpander .element-container {{margin-bottom:0!important}}
+
+/* ── Section Divider ── */
+hr[data-testid*="stMarkdown"] {{margin:0.6rem 0!important;border-color:rgba(30,48,68,0.3)!important}}
+
+/* ── Tab Panel Padding ── */
+.stTabs [role="tabpanel"] {{padding:0.8rem 0 0!important;background:transparent!important;border:none!important;margin-top:0}}
+
+/* ── Leaflet / Folium Map Dark ── */
+.leaflet-container {{background:#0a1520!important;border-radius:14px;overflow:hidden}}
+.leaflet-control-attribution {{display:none!important}}
+.leaflet-control-zoom {{display:none!important}}
+.leaflet-control-scale {{background:rgba(10,21,32,0.85)!important;border:1px solid rgba(30,48,68,0.4)!important;color:#8ab8d8!important;border-radius:6px!important;padding:1px 6px!important;font-size:10px!important}}
+.leaflet-control-scale-line {{background:transparent!important;border:none!important;color:#8ab8d8!important;font-size:10px!important}}
+.folium-map {{border-radius:14px!important;overflow:hidden!important}}
+
+/* ── Button attachment to card ── */
+.step-btn-row {{margin-top:-0.5rem!important}}
+
 /* ── Prevent horizontal overflow ── */
-html,body,.stApp{{overflow-x:clip;max-width:100%}}
-.block-container {{max-width:100%;padding-left:0!important;padding-right:0!important}}
-.block-container > div:first-child > div:first-child > div:first-child {{padding-left:1.5rem!important;padding-right:1.5rem!important;max-width:min(1400px,100%);margin:0 auto;width:100%;box-sizing:border-box}}
-@media(max-width:768px){{.block-container > div:first-child > div:first-child > div:first-child {{padding-left:1rem!important;padding-right:1rem!important}}}}
+.stApp {{overflow-x:hidden}}
+.block-container {{max-width:1200px!important;padding-left:1.5rem!important;padding-right:1.5rem!important;margin:0 auto!important;box-sizing:border-box!important}}
+@media(max-width:1200px){{.block-container {{max-width:100%!important}}}}
+@media(max-width:768px){{.block-container {{padding-left:1rem!important;padding-right:1rem!important}}}}
+@media(max-width:480px){{.block-container {{padding-left:0.5rem!important;padding-right:0.5rem!important}}}}
 
 /* ── Desktop wide (>1200px) ── */
 @media(min-width:1201px){{
@@ -450,6 +498,8 @@ div.stButton > button{{font-size:0.85rem!important;padding:0.5rem 1rem!important
 }}
 @media(max-width:576px){{
 .block-container > div:first-child > div:first-child > div:first-child {{padding-left:0.8rem!important;padding-right:0.8rem!important}}
+/* Stack form columns on small screens */
+.search-card div[data-testid="column"] {{flex:1 1 100%!important;min-width:100%!important}}
 .hero-wrap{{min-height:220px!important}}
 .hero-ct{{min-height:220px!important;padding:0.8rem 1rem!important}}
 .hero-sub{{max-width:100%}}
@@ -582,28 +632,37 @@ WIZARD_STEPS = [
 ]
 
 def wizard_indicator(current):
-    html = '<div style="display:flex;align-items:center;justify-content:center;gap:0;margin:1rem 0 1.5rem;flex-wrap:wrap;">'
+    n = len(WIZARD_STEPS)
+    done_pct = 0 if current <= 1 else (current - 1) / (n - 1) * 100
+    html = (
+        f'<div style="display:flex;justify-content:space-between;width:100%;'
+        f'margin:1rem 0 1.5rem;position:relative;">'
+        f'<div style="position:absolute;top:17px;left:18px;right:18px;height:2px;'
+        f'background:#1e3050;border-radius:1px;z-index:0;"></div>'
+        + (f'<div style="position:absolute;top:17px;left:18px;'
+           f'width:calc((100% - 36px) * {done_pct/100});height:2px;'
+           f'background:{ACCENT};border-radius:1px;z-index:0;'
+           f'transition:width 0.4s ease;"></div>' if done_pct > 0 else '')
+    )
     for i, (num, ik, label) in enumerate(WIZARD_STEPS):
         done = num < current
         active = num == current
         bg = ACCENT if done else (AGLOW if active else "#1e3050")
         bc = "#fff" if done else (ACCENT if active else "#4a6a85")
+        lc = ACCENT if done else (ACCENT if active else "#7aa8cc")
         html += (
-            f'<div style="display:flex;align-items:center;{"flex:1;" if i < len(WIZARD_STEPS)-1 else ""}">'
-            f'<div style="display:flex;flex-direction:column;align-items:center;gap:0.2rem;">'
+            f'<div style="display:flex;flex-direction:column;align-items:center;gap:0.2rem;z-index:1;">'
             f'<div style="width:36px;height:36px;border-radius:50%;background:{bg};'
             f'border:2px solid {bc};display:flex;align-items:center;justify-content:center;'
             f'font-size:0.8rem;font-weight:700;color:#fff;transition:all 0.3s ease;'
             f'{"box-shadow:0 0 12px " + AGLOW + ";" if active else ""}">'
             f'{ICON(ik, 16, color="#fff") if done else (ICON(ik, 16, color=ACCENT) if active else str(num))}'
             f'</div>'
-            f'<span style="font-size:0.65rem;color:{bc};font-weight:{600 if active else 400};'
+            f'<span style="font-size:0.65rem;color:{lc};font-weight:{600 if active else 400};'
             f'letter-spacing:0.05em;white-space:nowrap;">{label}</span>'
             f'</div>'
-            f'{"<div style=\"flex:1;height:2px;background:" + (ACCENT if done else "#1e3050") + ";margin:0 0.5rem;margin-bottom:1rem;\"></div>" if i < len(WIZARD_STEPS)-1 else ""}'
-            f'</div>'
         )
-    html += "</div>"
+    html += '</div>'
     return html
 
 def haversine_km(lat1, lon1, lat2, lon2):
@@ -704,8 +763,7 @@ fd = st.session_state.form_data
 
 # ── Step 1: Where ──
 if step == 1:
-    st.markdown("<div class='search-card anim-scale'>", unsafe_allow_html=True)
-    st.markdown(f"<div style='display:flex;align-items:center;gap:0.4rem;margin-bottom:0.8rem;'>{ICON('route',16,color=ACCENT)} <span style='color:#e0edf8;font-size:1rem;font-weight:700;'>Where to?</span></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='search-card anim-scale'><div style='display:flex;align-items:center;gap:0.4rem;margin-bottom:0.8rem;'>{ICON('route',16,color=ACCENT)} <span style='color:#e0edf8;font-size:1rem;font-weight:700;'>Where to?</span></div>", unsafe_allow_html=True)
     trip_type = fd.get("trip_type", "Flights + Hotels")
     tt_opts = ["Flights + Hotels", "Flights Only", "Hotels Only", "Custom Itinerary"]
     trip_type = st.selectbox("Trip Type", tt_opts, index=tt_opts.index(trip_type) if trip_type in tt_opts else 0)
@@ -721,16 +779,15 @@ if step == 1:
     if route_map:
         _ = st_folium(route_map, width=None, height=220, returned_objects=[])
         if distance:
-            st.markdown(f"<div style='text-align:center;margin-top:0.3rem;font-size:0.78rem;color:#94adc8;'>{distance:.0f} km ({distance*0.621371:.0f} mi) · {from_city.split('(')[0].strip()} → {to_city.split('(')[0].strip()}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center;margin-top:0.3rem;font-size:0.78rem;color:#b0d0ea;'>{distance:.0f} km ({distance*0.621371:.0f} mi) · {from_city.split('(')[0].strip()} → {to_city.split('(')[0].strip()}</div>", unsafe_allow_html=True)
     fd.update({"trip_type":trip_type,"from_city":from_city,"to_city":to_city}); autosave(fd)
-    st.markdown("</div>", unsafe_allow_html=True)
     if st.button("Next →", key="wiz_next1", use_container_width=True, type="primary"):
         st.session_state.wizard_step = 2; st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ── Step 2: When ──
 elif step == 2:
-    st.markdown("<div class='search-card anim-scale'>", unsafe_allow_html=True)
-    st.markdown(f"<div style='display:flex;align-items:center;gap:0.4rem;margin-bottom:0.8rem;'>{ICON('calendar',16,color=ACCENT)} <span style='color:#e0edf8;font-size:1rem;font-weight:700;'>When?</span></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='search-card anim-scale'><div style='display:flex;align-items:center;gap:0.4rem;margin-bottom:0.8rem;'>{ICON('calendar',16,color=ACCENT)} <span style='color:#e0edf8;font-size:1rem;font-weight:700;'>When?</span></div>", unsafe_allow_html=True)
     dep_str = fd.get("dep_date","")
     ret_str = fd.get("ret_date","")
     try: dep_default = datetime.strptime(dep_str,"%Y-%m-%d").date() if dep_str else today+timedelta(days=14)
@@ -747,7 +804,6 @@ elif step == 2:
     nights = (ret_date - dep_date).days
     st.markdown(f"<div style='text-align:center;margin-top:0.5rem;padding:0.4rem;background:{ATINT};border-radius:10px;font-size:0.85rem;'>{ICON('moon',12)} <strong style='color:{ACCENT};'>{nights}</strong> night{'s' if nights!=1 else ''} trip</div>", unsafe_allow_html=True)
     fd.update({"dep_date":str(dep_date),"ret_date":str(ret_date),"duration":dur}); autosave(fd)
-    st.markdown("</div>", unsafe_allow_html=True)
     c2a, c2b = st.columns([1, 1])
     with c2a:
         if st.button("← Back", key="wiz_back2", use_container_width=True):
@@ -755,11 +811,11 @@ elif step == 2:
     with c2b:
         if st.button("Next →", key="wiz_next2", use_container_width=True, type="primary"):
             st.session_state.wizard_step = 3; st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ── Step 3: Who ──
 elif step == 3:
-    st.markdown("<div class='search-card anim-scale'>", unsafe_allow_html=True)
-    st.markdown(f"<div style='display:flex;align-items:center;gap:0.4rem;margin-bottom:0.8rem;'>{ICON('people',16,color=ACCENT)} <span style='color:#e0edf8;font-size:1rem;font-weight:700;'>Who?</span></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='search-card anim-scale'><div style='display:flex;align-items:center;gap:0.4rem;margin-bottom:0.8rem;'>{ICON('people',16,color=ACCENT)} <span style='color:#e0edf8;font-size:1rem;font-weight:700;'>Who?</span></div>", unsafe_allow_html=True)
     r3 = st.columns([1, 1, 1])
     with r3[0]:
         adults = st.number_input("Adults", 1, 10, int(fd.get("adults",1)))
@@ -769,7 +825,6 @@ elif step == 3:
         travel_class = st.selectbox("Class", ["Economy","Premium Economy","Business","First Class"], index=["Economy","Premium Economy","Business","First Class"].index(fd.get("travel_class","Economy")))
     st.markdown(f"<div style='margin-top:0.5rem;padding:0.6rem;background:{ATINT};border-radius:10px;font-size:0.85rem;'>{ICON('user',12)} <strong style='color:{ACCENT};'>{adults+children}</strong> traveler{'s' if adults+children!=1 else ''} · {travel_class}</div>", unsafe_allow_html=True)
     fd.update({"adults":adults,"children":children,"travel_class":travel_class}); autosave(fd)
-    st.markdown("</div>", unsafe_allow_html=True)
     c3a, c3b = st.columns([1, 1])
     with c3a:
         if st.button("← Back", key="wiz_back3", use_container_width=True):
@@ -777,11 +832,11 @@ elif step == 3:
     with c3b:
         if st.button("Next →", key="wiz_next3", use_container_width=True, type="primary"):
             st.session_state.wizard_step = 4; st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ── Step 4: Preferences ──
 elif step == 4:
-    st.markdown("<div class='search-card anim-scale'>", unsafe_allow_html=True)
-    st.markdown(f"<div style='display:flex;align-items:center;gap:0.4rem;margin-bottom:0.8rem;'>{ICON('heart',16,color=ACCENT)} <span style='color:#e0edf8;font-size:1rem;font-weight:700;'>Preferences</span></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='search-card anim-scale'><div style='display:flex;align-items:center;gap:0.4rem;margin-bottom:0.8rem;'>{ICON('heart',16,color=ACCENT)} <span style='color:#e0edf8;font-size:1rem;font-weight:700;'>Preferences</span></div>", unsafe_allow_html=True)
     r4 = st.columns([1, 1])
     default_interests = fd.get("interests", ["Sightseeing","Food & Dining"])
     if isinstance(default_interests, str): default_interests = ["Sightseeing","Food & Dining"]
@@ -791,7 +846,6 @@ elif step == 4:
         budget = st.select_slider("Budget per person", options=["Budget","Moderate","Premium","Luxury"], value=fd.get("budget","Moderate"))
     pace = st.radio("Pace", ["Relaxed","Moderate","Packed"], horizontal=True, index=["Relaxed","Moderate","Packed"].index(fd.get("pace","Moderate")) if fd.get("pace") in ["Relaxed","Moderate","Packed"] else 1)
     fd.update({"interests":list(interests),"budget":budget,"pace":pace}); autosave(fd)
-    st.markdown("</div>", unsafe_allow_html=True)
     c4a, c4b = st.columns([1, 1])
     with c4a:
         if st.button("← Back", key="wiz_back4", use_container_width=True):
@@ -799,11 +853,11 @@ elif step == 4:
     with c4b:
         if st.button("Review →", key="wiz_next4", use_container_width=True, type="primary"):
             st.session_state.wizard_step = 5; st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # ── Step 5: Review ──
 elif step == 5:
-    st.markdown("<div class='search-card anim-scale'>", unsafe_allow_html=True)
-    st.markdown(f"<div style='display:flex;align-items:center;gap:0.4rem;margin-bottom:0.8rem;'>{ICON('sparkles',16,color=ACCENT)} <span style='color:#e0edf8;font-size:1rem;font-weight:700;'>Review Your Trip</span></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='search-card anim-scale'><div style='display:flex;align-items:center;gap:0.4rem;margin-bottom:0.8rem;'>{ICON('sparkles',16,color=ACCENT)} <span style='color:#e0edf8;font-size:1rem;font-weight:700;'>Review Your Trip</span></div>", unsafe_allow_html=True)
     from_city = fd.get("from_city","Mumbai (BOM)")
     to_city = fd.get("to_city","Tokyo (NRT)")
     trip_type = fd.get("trip_type","Flights + Hotels")
@@ -822,7 +876,7 @@ elif step == 5:
     if route_map:
         _ = st_folium(route_map, width=None, height=200, returned_objects=[])
         if distance:
-            st.markdown(f"<div style='text-align:center;margin-top:0.3rem;font-size:0.78rem;color:#94adc8;'>{distance:.0f} km ({distance*0.621371:.0f} mi) · {from_city.split('(')[0].strip()} → {to_city.split('(')[0].strip()}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center;margin-top:0.3rem;font-size:0.78rem;color:#b0d0ea;'>{distance:.0f} km ({distance*0.621371:.0f} mi) · {from_city.split('(')[0].strip()} → {to_city.split('(')[0].strip()}</div>", unsafe_allow_html=True)
     labels = [
         ("ticket", "Trip Type", trip_type),
         ("route", "Route", f"{from_city.split('(')[0].strip()} → {to_city.split('(')[0].strip()}"),
@@ -836,13 +890,13 @@ elif step == 5:
     ]
     for ik, lb, val in labels:
         st.markdown(f"<div style='display:flex;align-items:center;gap:0.5rem;padding:0.3rem 0;border-bottom:1px solid rgba(30,48,68,0.3);'><span style='color:{ACCENT};'>{ICON(ik,12)}</span><span style='color:#6a8aaa;font-size:0.75rem;width:65px;'>{lb}</span><span style='color:#cce0f5;font-size:0.88rem;'>{val}</span></div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
     c5a, c5b = st.columns([1, 1])
     with c5a:
         if st.button("← Edit", key="wiz_back5", use_container_width=True):
             st.session_state.wizard_step = 4; st.rerun()
     with c5b:
         generate = st.button("Plan My Trip", use_container_width=True, type="primary")
+    st.markdown("</div>", unsafe_allow_html=True)
 
 try:
     generate
@@ -994,7 +1048,7 @@ if generate:
                 st.warning(f"**Guardrail blocked:** {sr}")
                 st.stop()
 
-            with st.expander(f"{ICON('brain',14)} Supervisor Plan — {', '.join(selected)}", expanded=False):
+            with st.expander(f"{ICON('brain',14,color=ACCENT)} Supervisor Plan — {', '.join(selected)}", expanded=False):
                 st.markdown(f"<div class='result-card' style='font-size:0.85rem;'>{sr}</div>", unsafe_allow_html=True)
                 tags = "".join(
                     f"<span style='background:{AGLOW};border:1px solid {ACCENT};color:{ACCENT};"
@@ -1016,7 +1070,7 @@ if generate:
             llm_calls = result.get("llm_calls", 0)
 
             st.markdown(
-f"""<div class="metric-row anim-slide" style="margin-bottom:1.2rem">
+f"""<div class="metric-row anim-slide" style="margin-bottom:0.6rem">
 <div class="metric-box"><div class="metric-val">{agents_run}</div><div class="metric-lbl">{ICON('layers',11)} Agents</div></div>
 <div class="metric-box"><div class="metric-val">{llm_calls}</div><div class="metric-lbl">{ICON('brain',11)} LLM Calls</div></div>
 <div class="metric-box"><div class="metric-val">{total_time:.1f}s</div><div class="metric-lbl">{ICON('clock',11)} Time</div></div>
