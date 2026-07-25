@@ -53,6 +53,9 @@ if "form_data" not in st.session_state: st.session_state.form_data = {}
 if "wizard_step" not in st.session_state: st.session_state.wizard_step = 1
 if "last_result" not in st.session_state: st.session_state.last_result = None
 if "viewing_history" not in st.session_state: st.session_state.viewing_history = None
+if "approval_pending" not in st.session_state: st.session_state.approval_pending = False
+if "pending_result" not in st.session_state: st.session_state.pending_result = None
+if "pending_config" not in st.session_state: st.session_state.pending_config = None
 
 # ── Load autosave on first run ──
 if "autosave_loaded" not in st.session_state:
@@ -1095,126 +1098,17 @@ f"""<div class="metric-row anim-slide" style="margin-bottom:0.6rem">
 
             # ── Human Approval ──
             if "__interrupt__" in result:
-                st.markdown("---")
-                st.markdown(f"<div class='sec-head'>{ICON('user',16)}<span>Human Approval Required</span></div>", unsafe_allow_html=True)
-
-                col_a, col_b = st.columns([1, 1])
-                with col_a:
-                    approved = st.radio("Approve this itinerary?", ["Yes, looks good", "No, revise it"], horizontal=True)
-                with col_b:
-                    fb = st.text_area("Feedback (if revising)", placeholder="e.g., Add more budget options, change pace...", disabled=(approved == "Yes, looks good"))
-
-                if st.button("Submit Approval", type="primary", use_container_width=True):
-                    with st.spinner("Finalizing your travel plan..."):
-                        final_result = app.invoke(
-                            Command(resume={
-                                "approved": approved == "Yes, looks good",
-                                "feedback": fb if approved != "Yes, looks good" else "",
-                            }),
-                            config=config,
-                        )
-
-                    final_resp = final_result.get("final_response", "")
-                    if final_resp:
-                        st.markdown("---")
-                        st.markdown(f"<div class='sec-head'>{ICON('sparkles',16)}<span>Final Travel Plan</span></div>", unsafe_allow_html=True)
-                        st.markdown(f"<div class='final-card'>{_md(final_resp)}</div>", unsafe_allow_html=True)
-
-                    final_itin = final_result.get("final_response", "") or itin
-                    final_llm = final_result.get("llm_calls", llm_calls)
-                    final_times = final_result.get("agent_times", agent_times)
-                    final_agents = len([k for k in final_times if k != "supervisor"])
-                    final_total = sum(final_times.values())
-
-                    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    fn = f"trip_{to_city[:3]}_{ts}.md"
-                    sd = os.path.join(os.path.dirname(__file__), "travel_plans")
-                    os.makedirs(sd, exist_ok=True)
-
-                    fc = f"""# {to_city.split('(')[0].strip()} Trip Plan
-**From:** {from_city} → **To:** {to_city}
-**Dates:** {dep_date} → {ret_date} | **Travelers:** {adults} adult{'s' if adults>1 else ''}{f', {children} child' if children else ''}
-**Class:** {travel_class} | **Budget:** {budget} | **Pace:** {pace}
-**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-
----
-
-## Flight Information
-{fr or 'Not requested'}
-
----
-
-## Hotel Information
-{hr or 'Not requested'}
-
----
-
-## Weather Information
-{wr or 'Not requested'}
-
----
-
-## Budget Analysis
-{br or 'Not requested'}
-
----
-
-## Itinerary
-{final_itin or 'N/A'}
-
----
-
-*LLM Calls: {final_llm} | Agents: {final_agents} | Time: {final_total:.1f}s*
-"""
-                    with open(os.path.join(sd, fn), "w", encoding="utf-8") as f:
-                        f.write(fc)
-
-                    short = f"{to_city.split('(')[0].strip()} · {dep_date}"
-                    if short not in st.session_state.history:
-                        st.session_state.history.append(short)
-                    events_str = get_destination_events_sync(to_city.split("(")[0].strip())
-                    st.session_state.trip_history[short] = {
-                        "itinerary": final_itin, "flight": fr, "hotel": hr,
-                        "weather": wr, "budget": br,
-                        "agents": final_agents, "llm_calls": final_llm,
-                        "time": final_total, "to_city": to_city, "from_city": from_city,
-                        "fc": fc, "fn": fn, "events": events_str,
-                    }
-                    _save_history()
-
-                    dl_col, json_col, pdf_col, info_col = st.columns([1, 1, 1, 2])
-                    with dl_col:
-                        st.download_button("Markdown", data=fc, file_name=fn, mime="text/markdown", use_container_width=True)
-                    with json_col:
-                        fj = fn.replace(".md", ".json")
-                        jc = json.dumps({
-                            "destination": to_city.split("(")[0].strip(),
-                            "origin": from_city.split("(")[0].strip(),
-                            "dates": {"departure": dep_date, "return": ret_date},
-                            "travelers": {"adults": adults, "children": children},
-                            "class": travel_class, "budget": budget, "pace": pace,
-                            "interests": list(interests) if isinstance(interests, list) else [],
-                            "flight": fr, "hotel": hr, "weather": wr,
-                            "budget": br, "itinerary": final_itin,
-                            "generated_at": datetime.now().isoformat(),
-                        }, indent=2, default=str)
-                        st.download_button("JSON", data=jc, file_name=fj, mime="application/json", use_container_width=True)
-                    with pdf_col:
-                        try:
-                            pdf_data = markdown_to_pdf(fn.replace(".md", "").replace("_", " "), fc)
-                            st.download_button("PDF", data=pdf_data, file_name=fn.replace(".md", ".pdf"), mime="application/pdf", use_container_width=True)
-                        except Exception:
-                            st.button("PDF", disabled=True, use_container_width=True)
-                    with info_col:
-                        st.markdown(f"<div class='save-bar'>{ICON('folder',14)} Saved — <code>travel_plans/{fn}</code></div>", unsafe_allow_html=True)
-
-                    st.session_state.last_result = {
-                        "itinerary": final_itin, "flight": fr, "hotel": hr,
-                        "weather": wr, "budget": br,
-                        "agents": final_agents, "llm_calls": final_llm,
-                        "time": final_total, "to_city": to_city, "from_city": from_city,
-                        "fc": fc, "fn": fn, "events": events_str,
-                    }
+                st.session_state.pending_result = result
+                st.session_state.pending_config = config
+                st.session_state.pending_data = {
+                    "to_city": to_city, "from_city": from_city, "dep_date": dep_date,
+                    "ret_date": ret_date, "adults": adults, "children": children,
+                    "travel_class": travel_class, "budget": budget, "pace": pace,
+                    "interests": interests, "fr": fr, "hr": hr, "wr": wr, "br": br,
+                    "itin": itin, "llm_calls": llm_calls, "agent_times": agent_times,
+                }
+                st.session_state.approval_pending = True
+                st.rerun()
             else:
                 ts = datetime.now().strftime("%Y%m%d_%H%M%S")
                 fn = f"trip_{to_city[:3]}_{ts}.md"
@@ -1308,3 +1202,133 @@ f"""<div class="metric-row anim-slide" style="margin-bottom:0.6rem">
 
         except Exception as e:
             st.error(f"An error occurred during planning: {e}")
+
+# ── Approval UI (persists across reruns) ──
+if st.session_state.approval_pending and st.session_state.pending_data:
+    pd = st.session_state.pending_data
+    st.markdown("---")
+    st.markdown(f"<div class='sec-head'>{ICON('user',16)}<span>Human Approval Required</span></div>", unsafe_allow_html=True)
+
+    col_a, col_b = st.columns([1, 1])
+    with col_a:
+        approved = st.radio("Approve this itinerary?", ["Yes, looks good", "No, revise it"], horizontal=True, key="approval_radio")
+    with col_b:
+        fb = st.text_area("Feedback (if revising)", placeholder="e.g., Add more budget options, change pace...", disabled=(approved == "Yes, looks good"), key="approval_fb")
+
+    if st.button("Submit Approval", type="primary", use_container_width=True, key="submit_approval"):
+        with st.spinner("Finalizing your travel plan..."):
+            final_result = app.invoke(
+                Command(resume={
+                    "approved": approved == "Yes, looks good",
+                    "feedback": fb if approved != "Yes, looks good" else "",
+                }),
+                config=st.session_state.pending_config,
+            )
+
+        final_resp = final_result.get("final_response", "")
+        if final_resp:
+            st.markdown("---")
+            st.markdown(f"<div class='sec-head'>{ICON('sparkles',16)}<span>Final Travel Plan</span></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='final-card'>{_md(final_resp)}</div>", unsafe_allow_html=True)
+
+        final_itin = final_result.get("final_response", "") or pd["itin"]
+        final_llm = final_result.get("llm_calls", pd["llm_calls"])
+        final_times = final_result.get("agent_times", pd["agent_times"])
+        final_agents = len([k for k in final_times if k != "supervisor"])
+        final_total = sum(final_times.values())
+
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        fn = f"trip_{pd['to_city'][:3]}_{ts}.md"
+        sd = os.path.join(os.path.dirname(__file__), "travel_plans")
+        os.makedirs(sd, exist_ok=True)
+        to_city_name = pd["to_city"].split("(")[0].strip()
+        from_city_name = pd["from_city"].split("(")[0].strip()
+
+        fc = f"""# {to_city_name} Trip Plan
+**From:** {pd['from_city']} → **To:** {pd['to_city']}
+**Dates:** {pd['dep_date']} → {pd['ret_date']} | **Travelers:** {pd['adults']} adult{'s' if pd['adults']>1 else ''}{f', {pd['children']} child' if pd['children'] else ''}
+**Class:** {pd['travel_class']} | **Budget:** {pd['budget']} | **Pace:** {pd['pace']}
+**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+---
+
+## Flight Information
+{pd['fr'] or 'Not requested'}
+
+---
+
+## Hotel Information
+{pd['hr'] or 'Not requested'}
+
+---
+
+## Weather Information
+{pd['wr'] or 'Not requested'}
+
+---
+
+## Budget Analysis
+{pd['br'] or 'Not requested'}
+
+---
+
+## Itinerary
+{final_itin or 'N/A'}
+
+---
+
+*LLM Calls: {final_llm} | Agents: {final_agents} | Time: {final_total:.1f}s*
+"""
+        with open(os.path.join(sd, fn), "w", encoding="utf-8") as f:
+            f.write(fc)
+
+        short = f"{to_city_name} · {pd['dep_date']}"
+        if short not in st.session_state.history:
+            st.session_state.history.append(short)
+        events_str = get_destination_events_sync(to_city_name)
+        st.session_state.trip_history[short] = {
+            "itinerary": final_itin, "flight": pd["fr"], "hotel": pd["hr"],
+            "weather": pd["wr"], "budget": pd["br"],
+            "agents": final_agents, "llm_calls": final_llm,
+            "time": final_total, "to_city": pd["to_city"], "from_city": pd["from_city"],
+            "fc": fc, "fn": fn, "events": events_str,
+        }
+        _save_history()
+
+        dl_col, json_col, pdf_col, info_col = st.columns([1, 1, 1, 2])
+        with dl_col:
+            st.download_button("Markdown", data=fc, file_name=fn, mime="text/markdown", use_container_width=True)
+        with json_col:
+            fj = fn.replace(".md", ".json")
+            jc = json.dumps({
+                "destination": to_city_name, "origin": from_city_name,
+                "dates": {"departure": pd["dep_date"], "return": pd["ret_date"]},
+                "travelers": {"adults": pd["adults"], "children": pd["children"]},
+                "class": pd["travel_class"], "budget": pd["budget"], "pace": pd["pace"],
+                "interests": list(pd["interests"]) if isinstance(pd["interests"], list) else [],
+                "flight": pd["fr"], "hotel": pd["hr"], "weather": pd["wr"],
+                "budget": pd["br"], "itinerary": final_itin,
+                "generated_at": datetime.now().isoformat(),
+            }, indent=2, default=str)
+            st.download_button("JSON", data=jc, file_name=fj, mime="application/json", use_container_width=True)
+        with pdf_col:
+            try:
+                pdf_data = markdown_to_pdf(fn.replace(".md", "").replace("_", " "), fc)
+                st.download_button("PDF", data=pdf_data, file_name=fn.replace(".md", ".pdf"), mime="application/pdf", use_container_width=True)
+            except Exception:
+                st.button("PDF", disabled=True, use_container_width=True)
+        with info_col:
+            st.markdown(f"<div class='save-bar'>{ICON('folder',14)} Saved — <code>travel_plans/{fn}</code></div>", unsafe_allow_html=True)
+
+        st.session_state.last_result = {
+            "itinerary": final_itin, "flight": pd["fr"], "hotel": pd["hr"],
+            "weather": pd["wr"], "budget": pd["br"],
+            "agents": final_agents, "llm_calls": final_llm,
+            "time": final_total, "to_city": pd["to_city"], "from_city": pd["from_city"],
+            "fc": fc, "fn": fn, "events": events_str,
+        }
+        st.session_state.approval_pending = False
+        st.session_state.pending_result = None
+        st.session_state.pending_config = None
+        st.session_state.pending_data = None
+        st.rerun()
