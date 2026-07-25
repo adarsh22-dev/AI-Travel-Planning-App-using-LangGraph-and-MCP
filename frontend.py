@@ -104,11 +104,12 @@ def markdown_to_pdf(title: str, body: str):
     try:
         pdf = FPDF()
         pdf.add_page()
-        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.set_auto_page_break(auto=True, margin=10)
         pdf.set_title(_san(title[:128]))
         pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(0, 10, _san(title[:128]), ln=2)
-        pdf.ln(3)
+        pdf.cell(0, 8, _san(title[:128]))
+        pdf.ln(8)
+        pdf.ln(2)
         pdf.set_font("Helvetica", "", 9)
         for line in (body or "").split("\n"):
             clean = line.strip()
@@ -116,19 +117,19 @@ def markdown_to_pdf(title: str, body: str):
                 pdf.ln(2)
             elif clean.startswith("###") or clean.startswith("##"):
                 pdf.set_font("Helvetica", "B", 11)
-                pdf.cell(0, 6, _san(clean.lstrip("#").strip()[:120]), ln=2)
+                pdf.cell(0, 5, _san(clean.lstrip("#").strip()[:120]))
+                pdf.ln(5)
                 pdf.set_font("Helvetica", "", 9)
-                pdf.ln(2)
+                pdf.ln(1)
             elif clean.startswith("**") and clean.endswith("**"):
                 pdf.set_font("Helvetica", "B", 10)
-                pdf.cell(0, 5, _san(clean.strip("*")[:120]), ln=2)
+                pdf.cell(0, 5, _san(clean.strip("*")[:120]))
+                pdf.ln(5)
                 pdf.set_font("Helvetica", "", 9)
             else:
                 txt = _san(clean.replace("**","").replace("*","").replace("`","").replace("_","")[:200])
-                if len(txt) > 90:
-                    pdf.multi_cell(0, 4, txt)
-                else:
-                    pdf.cell(0, 4.5, txt, ln=2)
+                pdf.multi_cell(0, 4, txt)
+                pdf.x = pdf.l_margin
         out = pdf.output()
         if isinstance(out, bytes):
             pdf_bytes = out
