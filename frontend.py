@@ -94,9 +94,13 @@ def markdown_to_pdf(title: str, body: str) -> bytes:
         pdf = FPDF()
         pdf.add_page()
         pdf.set_auto_page_break(auto=True, margin=15)
+
+        def _san(t):
+            return t.encode("latin-1", "replace").decode("latin-1")
+
         pdf.set_title(title[:128])
         pdf.set_font("Helvetica", "B", 14)
-        pdf.cell(0, 10, title[:128].encode("latin-1","replace").decode("latin-1"), ln=2)
+        pdf.cell(0, 10, _san(title[:128]), new_x="LMARGIN", new_y="NEXT")
         pdf.ln(3)
         pdf.set_font("Helvetica", "", 8)
         for line in (body or "").split("\n"):
@@ -105,21 +109,21 @@ def markdown_to_pdf(title: str, body: str) -> bytes:
                 pdf.ln(2)
             elif clean.startswith("###") or clean.startswith("##"):
                 pdf.set_font("Helvetica", "B", 10)
-                pdf.cell(0, 6, clean.lstrip("#").strip()[:120].encode("latin-1","replace").decode("latin-1"), ln=2)
+                pdf.cell(0, 6, _san(clean.lstrip("#").strip()[:120]), new_x="LMARGIN", new_y="NEXT")
                 pdf.set_font("Helvetica", "", 8)
-                pdf.ln(1)
+                pdf.ln(2)
             elif clean.startswith("**") and clean.endswith("**"):
                 pdf.set_font("Helvetica", "B", 9)
-                pdf.cell(0, 5, clean.strip("*")[:120].encode("latin-1","replace").decode("latin-1"), ln=2)
+                pdf.cell(0, 5, _san(clean.strip("*")[:120]), new_x="LMARGIN", new_y="NEXT")
                 pdf.set_font("Helvetica", "", 8)
             else:
-                txt = clean.replace("**","").replace("*","").replace("`","").replace("_","")
-                txt = txt[:200].encode("latin-1","replace").decode("latin-1")
+                txt = _san(clean.replace("**","").replace("*","").replace("`","").replace("_","")[:200])
                 if len(txt) > 90:
                     pdf.multi_cell(0, 4, txt)
                 else:
-                    pdf.cell(0, 4.5, txt, ln=2)
-        return bytes(pdf.output())
+                    pdf.cell(0, 4.5, txt, new_x="LMARGIN", new_y="NEXT")
+        out = pdf.output()
+        return bytes(out) if len(out) > 100 else b""
     except Exception:
         return b""
 
@@ -968,10 +972,10 @@ if lr and not generate:
         lr_jc = json.dumps({"destination": lr.get("to_city","?").split("(")[0].strip() if lr.get("to_city") else "?", "generated_at": datetime.now().isoformat(), "flight": lr.get("flight",""), "hotel": lr.get("hotel",""), "weather": lr.get("weather",""), "budget": lr.get("budget",""), "itinerary": lr.get("itinerary","")}, indent=2, default=str)
         st.download_button("JSON", data=lr_jc, file_name=lr_fn, mime="application/json", use_container_width=True)
     with c_pdf:
-        try:
-            lr_pdf = markdown_to_pdf(lr.get("fn","trip.md").replace(".md","").replace("_"," "), lr.get("fc",""))
+        lr_pdf = markdown_to_pdf(lr.get("fn","trip.md").replace(".md","").replace("_"," "), lr.get("fc",""))
+        if len(lr_pdf) > 100:
             st.download_button("PDF", data=lr_pdf, file_name=lr.get("fn","trip.md").replace(".md",".pdf"), mime="application/pdf", use_container_width=True)
-        except:
+        else:
             st.button("PDF", disabled=True, use_container_width=True)
     with c_in:
         st.markdown(f"<div class='save-bar'>{ICON('folder',14)} <code>travel_plans/{lr.get('fn','')}</code></div>", unsafe_allow_html=True)
@@ -1184,10 +1188,10 @@ f"""<div class="metric-row anim-slide" style="margin-bottom:0.6rem">
                     }, indent=2, default=str)
                     st.download_button("JSON", data=jc, file_name=fj, mime="application/json", use_container_width=True)
                 with pdf_col:
-                    try:
-                        pdf_data = markdown_to_pdf(fn.replace(".md", "").replace("_", " "), fc)
+                    pdf_data = markdown_to_pdf(fn.replace(".md", "").replace("_", " "), fc)
+                    if len(pdf_data) > 100:
                         st.download_button("PDF", data=pdf_data, file_name=fn.replace(".md", ".pdf"), mime="application/pdf", use_container_width=True)
-                    except Exception:
+                    else:
                         st.button("PDF", disabled=True, use_container_width=True)
                 with info_col:
                     st.markdown(f"<div class='save-bar'>{ICON('folder',14)} Saved — <code>travel_plans/{fn}</code></div>", unsafe_allow_html=True)
@@ -1320,10 +1324,10 @@ if st.session_state.approval_pending and st.session_state.pending_data:
             }, indent=2, default=str)
             st.download_button("JSON", data=jc, file_name=fj, mime="application/json", use_container_width=True)
         with pdf_col:
-            try:
-                pdf_data = markdown_to_pdf(fn.replace(".md", "").replace("_", " "), fc)
+            pdf_data = markdown_to_pdf(fn.replace(".md", "").replace("_", " "), fc)
+            if len(pdf_data) > 100:
                 st.download_button("PDF", data=pdf_data, file_name=fn.replace(".md", ".pdf"), mime="application/pdf", use_container_width=True)
-            except Exception:
+            else:
                 st.button("PDF", disabled=True, use_container_width=True)
         with info_col:
             st.markdown(f"<div class='save-bar'>{ICON('folder',14)} Saved — <code>travel_plans/{fn}</code></div>", unsafe_allow_html=True)
