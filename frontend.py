@@ -277,10 +277,8 @@ div.stButton > button[data-testid*="hist_"]{{background:rgba(14,26,43,0.5) !impo
 div.stButton > button[data-testid*="hist_"]:hover{{border-color:{ACCENT} !important;color:#fff !important;background:rgba(17,30,50,0.9) !important}}
 
 /* ── Hero ── */
-.hero-wrap{{position:relative;width:100vw;margin-left:calc(-50vw + 50%);border-radius:0;overflow:hidden;margin-bottom:1.5rem;min-height:clamp(180px,45vh,600px);background:linear-gradient(135deg,#0a1628 0%,#0b4953 50%,#0a1628 100%);background-size:200% 200%;animation:gradientShift 8s ease infinite}}
-.hero-bg{{width:100%;height:100%;object-fit:cover;display:block;position:absolute;top:0;left:0}}
-.st-emotion-cache-4cktc5 img{{max-width:100%;vertical-align:middle;object-fit:contain;max-height:clamp(180px,45vh,600px)}}
-.hero-ct{{position:relative;z-index:2;min-height:clamp(180px,45vh,600px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:clamp(1rem,3vw,2rem);background:rgba(0,0,0,0.45);backdrop-filter:blur(2px)}}
+.hero-wrap{{position:relative;width:100vw;margin-left:calc(-50vw + 50%);border-radius:0;overflow:hidden;margin-bottom:1.5rem;min-height:clamp(180px,45vh,600px);background-size:cover;background-position:center;background-repeat:no-repeat}}
+.hero-ct{{position:relative;z-index:1;min-height:clamp(180px,45vh,600px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:clamp(1rem,3vw,2rem);backdrop-filter:blur(1px)}}
 .hero-title{{font-size:clamp(1.2rem,4vw,2.5rem);font-weight:800;color:#fff;margin:0 0 0.25rem;display:flex;align-items:center;gap:clamp(0.3rem,1vw,0.5rem)}}
 .hero-title svg{{width:clamp(20px,3vw,32px);height:clamp(20px,3vw,32px)}}
 .hero-sub{{color:#94adc8;font-size:clamp(0.75rem,1.5vw,1rem);max-width:min(90vw,600px);line-height:1.5}}
@@ -402,7 +400,6 @@ button[kind="secondary"]:hover{{border-color:{ACCENT}!important;color:#fff!impor
 @media(max-width:768px){{
 .hero-wrap{{min-height:280px!important}}
 .hero-ct{{min-height:280px!important;padding:1.2rem!important}}
-.st-emotion-cache-4cktc5 img{{max-height:280px!important}}
 .metric-row,.ds_cols{{flex-wrap:wrap}}
 .metric-box,.dash-stat{{min-width:45%}}
 .quick-dest{{height:60px}}
@@ -422,7 +419,6 @@ div.stButton > button{{font-size:0.85rem!important;padding:0.5rem 1rem!important
 @media(max-width:480px){{
 .hero-wrap{{min-height:200px!important}}
 .hero-ct{{min-height:200px!important;padding:0.8rem!important}}
-.st-emotion-cache-4cktc5 img{{max-height:200px!important}}
 .stSelectbox div[data-baseweb="select"]{{font-size:0.75rem!important}}
 .stRadio div[role="radiogroup"] label{{font-size:0.65rem!important;padding:0.15rem 0.4rem!important}}
 .stTextArea textarea{{font-size:0.8rem!important}}
@@ -610,8 +606,7 @@ _b64 = _banner_b64()
 _banner_src = f"data:image/png;base64,{_b64}" if _b64 else "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1400&q=80"
 
 st.markdown(
-f"""<div class="hero-wrap anim-fade">
-<img class="hero-bg" src="{_banner_src}" alt=""/>
+f"""<div class="hero-wrap anim-fade" style="background-image:linear-gradient(135deg,rgba(10,22,40,0.85) 0%,rgba(11,73,83,0.7) 50%,rgba(10,22,40,0.85) 100%),url({_banner_src});">
 <div class="hero-ct">
 <div class="hero-title">{ICON('compass',26)} AI Travel Planner</div>
 <div class="hero-sub">Tell us where you want to go — our AI agents build a complete trip with flights, hotels, weather &amp; itinerary.</div>
