@@ -1,6 +1,4 @@
 import os
-import psycopg
-from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph import END, START, StateGraph
 from dotenv import load_dotenv
 
@@ -82,9 +80,9 @@ def build_graph():
     graph.add_edge("human_approval", "final_response")
     graph.add_edge("final_response", END)
 
-    _checkpointer = None
-    _conn = None
     try:
+        import psycopg
+        from langgraph.checkpoint.postgres import PostgresSaver
         _conn = psycopg.connect(DATABASE_URL)
         _checkpointer = PostgresSaver(_conn)
         _checkpointer.setup()
