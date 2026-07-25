@@ -393,45 +393,112 @@ button[kind="secondary"]:hover{{border-color:{ACCENT}!important;color:#fff!impor
   padding-left:0!important;padding-right:0!important;max-width:100%!important
 }}
 .block-container {{padding-left:0!important;padding-right:0!important;max-width:100%!important}}
-.block-container > div:first-child > div:first-child > div:first-child {{padding-left:1.5rem!important;padding-right:1.5rem!important;max-width:900px;margin:0 auto}}
+.block-container > div:first-child > div:first-child > div:first-child {{padding-left:1.5rem!important;padding-right:1.5rem!important;max-width:min(1200px,100%);margin:0 auto}}
 @media(max-width:768px){{.block-container > div:first-child > div:first-child > div:first-child {{padding-left:1rem!important;padding-right:1rem!important}}}}
 
 /* ── Responsive ── */
+@media(max-width:992px){{
+.block-container > div:first-child > div:first-child > div:first-child {{padding-left:1.2rem!important;padding-right:1.2rem!important;max-width:100%!important}}
+.hero-sub{{max-width:500px}}
+.metric-val{{font-size:1.3rem}}
+.photo-grid{{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))!important}}
+.stTabs [data-baseweb="tab"]{{font-size:0.78rem!important;padding:0.35rem 0.7rem!important}}
+}}
 @media(max-width:768px){{
+.block-container > div:first-child > div:first-child > div:first-child {{padding-left:1rem!important;padding-right:1rem!important}}
 .hero-wrap{{min-height:280px!important}}
 .hero-ct{{min-height:280px!important;padding:1.2rem!important}}
+.search-card{{padding:1rem!important;border-radius:14px!important}}
 .metric-row,.ds_cols{{flex-wrap:wrap}}
-.metric-box,.dash-stat{{min-width:45%}}
-.quick-dest{{height:60px}}
+.metric-box,.dash-stat{{min-width:46%;flex:1 1 46%}}
+.metric-val{{font-size:1.2rem}}
 .dash-stat{{margin-bottom:0.4rem}}
-.search-card{{padding:1rem!important}}
-div[data-testid="column"] button{{font-size:0.75rem!important;padding:0.4rem 0.6rem!important}}
+.quick-dest{{height:60px}}
 .stDownloadButton,div[data-testid="stDownloadButton"]{{width:100%!important}}
-.stTabs [data-baseweb="tab"]{{font-size:0.75rem!important;padding:0.3rem 0.6rem!important}}
-.photo-grid{{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important}}
-.photo-grid img{{height:120px!important}}
+div[data-testid="column"] button{{font-size:0.75rem!important;padding:0.4rem 0.6rem!important}}
+div.stButton > button{{font-size:0.85rem!important;padding:0.5rem 1rem!important}}
+.stTabs [data-baseweb="tab"]{{font-size:0.72rem!important;padding:0.25rem 0.5rem!important}}
+.photo-grid{{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))!important}}
+.photo-grid img{{height:110px!important}}
 .timeline{{padding-left:1.2rem!important}}
 .final-card{{padding:1rem!important;font-size:0.85rem!important}}
 .pipeline-svg{{max-width:100%!important}}
-div.stButton > button{{font-size:0.85rem!important;padding:0.5rem 1rem!important}}
-.st-emotion-cache-4cktc5 img{{max-height:280px!important}}
+.sec-head{{margin:1rem 0 0.4rem}}
+.sec-head span{{font-size:1rem}}
+.stRadio div[role="radiogroup"]{{flex-wrap:wrap}}
+.stRadio div[role="radiogroup"] label{{padding:0.25rem 0.7rem!important;font-size:0.78rem!important}}
+.save-bar{{font-size:0.75rem;padding:0.5rem 0.7rem}}
+.result-card{{padding:0.85rem}}
+.result-card h3,.result-card h4{{font-size:0.85rem}}
+.result-card p,.result-card li{{font-size:0.8rem}}
+}}
+@media(max-width:576px){{
+.block-container > div:first-child > div:first-child > div:first-child {{padding-left:0.8rem!important;padding-right:0.8rem!important}}
+.hero-wrap{{min-height:220px!important}}
+.hero-ct{{min-height:220px!important;padding:0.8rem 1rem!important}}
+.hero-sub{{max-width:100%}}
+.metric-row{{gap:0.5rem}}
+.metric-box,.dash-stat{{flex:1 1 100%;min-width:100%;padding:0.5rem 0.6rem}}
+.dash-stat{{min-width:100%!important}}
+.quick-dest{{height:50px}}
+.search-card{{padding:0.8rem!important;border-radius:12px!important}}
+.stSelectbox div[data-baseweb="select"]{{font-size:0.78rem!important}}
+.stMultiSelect div[data-baseweb="select"]{{font-size:0.78rem!important}}
+.stTextArea textarea{{font-size:0.82rem!important}}
+.stNumberInput input{{font-size:0.82rem!important}}
+.stDateInput input{{font-size:0.82rem!important}}
+.stRadio div[role="radiogroup"] label{{font-size:0.72rem!important;padding:0.2rem 0.5rem!important}}
+div.stButton > button{{font-size:0.8rem!important;padding:0.45rem 0.8rem!important}}
+.stTabs [data-baseweb="tab"]{{font-size:0.68rem!important;padding:0.2rem 0.4rem!important}}
+.photo-grid{{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))!important;gap:0.5rem}}
+.photo-grid img{{height:90px!important;border-radius:8px!important}}
+.final-card{{padding:0.8rem!important;font-size:0.8rem!important}}
+.result-card{{padding:0.65rem;font-size:0.78rem}}
+.dash-stat-val{{font-size:1rem!important}}
+.sec-head span{{font-size:0.85rem}}
+.timeline{{padding-left:1rem!important}}
+.tl-item h5{{font-size:0.8rem}}
+.tl-item p{{font-size:0.75rem}}
+.save-bar{{flex-wrap:wrap;font-size:0.72rem;padding:0.4rem 0.6rem}}
+.dash-tabs [role="tabpanel"]{{padding:0.6rem!important}}
+.dash-tabs button[data-baseweb="tab"]{{font-size:0.72rem!important;padding:0.25rem 0.5rem!important}}
+.stMarkdown h1{{font-size:1.2rem!important}}
+.stMarkdown h2{{font-size:1.1rem!important}}
+.stMarkdown h3{{font-size:1rem!important}}
+.pipeline-svg svg{{height:60px}}
+.sidebar-chip{{font-size:0.72rem;padding:0.25rem 0.5rem}}
+.sidebar-sec{{font-size:0.6rem;margin:0.8rem 0.3rem 0.3rem}}
+.history-item{{font-size:0.68rem;padding:0.3rem 0.4rem}}
 }}
 @media(max-width:480px){{
-.hero-wrap{{min-height:200px!important}}
-.hero-ct{{min-height:200px!important;padding:0.8rem!important}}
-.stSelectbox div[data-baseweb="select"]{{font-size:0.75rem!important}}
-.stRadio div[role="radiogroup"] label{{font-size:0.65rem!important;padding:0.15rem 0.4rem!important}}
-.stTextArea textarea{{font-size:0.8rem!important}}
-.stNumberInput input{{font-size:0.8rem!important}}
-.stDateInput input{{font-size:0.8rem!important}}
-.stMultiSelect div[data-baseweb="select"]{{font-size:0.75rem!important}}
-.metric-box,.dash-stat{{min-width:100%;margin-bottom:0.3rem}}
-.quick-dest{{height:50px}}
-.dash-stat-val{{font-size:1rem!important}}
-.result-card{{padding:0.7rem!important;font-size:0.78rem!important}}
-.sec-head span{{font-size:0.9rem!important}}
-.wizard_indicator > div{{gap:0.2rem!important}}
-.st-emotion-cache-4cktc5 img{{max-height:200px!important}}
+.block-container > div:first-child > div:first-child > div:first-child {{padding-left:0.5rem!important;padding-right:0.5rem!important}}
+.hero-wrap{{min-height:160px!important}}
+.hero-ct{{min-height:160px!important;padding:0.4rem 0.5rem!important}}
+.search-card{{padding:0.6rem!important;border-radius:10px!important}}
+.metric-box,.dash-stat{{min-width:100%!important;padding:0.35rem 0.4rem}}
+.quick-dest{{height:40px;border-radius:10px}}
+.stSelectbox div[data-baseweb="select"]{{font-size:0.72rem!important}}
+.stMultiSelect div[data-baseweb="select"]{{font-size:0.72rem!important}}
+.stTextArea textarea{{font-size:0.78rem!important}}
+.stNumberInput input{{font-size:0.78rem!important}}
+.stDateInput input{{font-size:0.78rem!important}}
+.stRadio div[role="radiogroup"] label{{font-size:0.6rem!important;padding:0.12rem 0.35rem!important}}
+div.stButton > button{{font-size:0.72rem!important;padding:0.3rem 0.5rem!important;border-radius:10px!important}}
+.stTabs [data-baseweb="tab"]{{font-size:0.6rem!important;padding:0.12rem 0.3rem!important}}
+.photo-grid img{{height:65px!important}}
+.result-card{{padding:0.45rem;font-size:0.7rem;border-radius:8px}}
+.dash-stat-val{{font-size:0.85rem!important}}
+.sec-head span{{font-size:0.75rem}}
+.sec-head{{margin:0.6rem 0 0.3rem;gap:0.3rem}}
+.final-card{{padding:0.5rem!important;font-size:0.72rem!important;border-radius:10px!important}}
+.timeline::before{{left:5px}}
+.tl-item::before{{width:7px;height:7px;left:-1.1rem}}
+.stMarkdown h1{{font-size:1rem!important}}
+.stMarkdown h2{{font-size:0.9rem!important}}
+.stMarkdown h3{{font-size:0.85rem!important}}
+.save-bar{{font-size:0.6rem;padding:0.25rem 0.35rem}}
+.dash-tabs [role="tabpanel"]{{padding:0.3rem!important}}
+.sidebar-title{{font-size:0.75rem}}
 }}
 </style>
 """
