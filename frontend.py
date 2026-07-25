@@ -277,7 +277,7 @@ div.stButton > button[data-testid*="hist_"]{{background:rgba(14,26,43,0.5) !impo
 div.stButton > button[data-testid*="hist_"]:hover{{border-color:{ACCENT} !important;color:#fff !important;background:rgba(17,30,50,0.9) !important}}
 
 /* ── Hero ── */
-.hero-wrap{{position:relative;width:100vw;margin-left:calc(-50vw + 50%);border-radius:0;overflow:hidden;margin-bottom:1.5rem;min-height:clamp(180px,45vh,600px);background-size:auto,contain;background-position:center;background-repeat:no-repeat}}
+.hero-wrap{{position:relative;left:50%;right:50%;width:100vw;margin-left:-50vw;margin-right:-50vw;border-radius:0;overflow:hidden;margin-bottom:1.5rem;min-height:clamp(180px,45vh,600px);background-size:auto,contain;background-position:center;background-repeat:no-repeat}}
 .hero-ct{{position:relative;z-index:1;min-height:clamp(180px,45vh,600px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:clamp(1rem,3vw,2rem);backdrop-filter:blur(1px)}}
 .hero-title{{font-size:clamp(1.2rem,4vw,2.5rem);font-weight:800;color:#fff;margin:0 0 0.25rem;display:flex;align-items:center;gap:clamp(0.3rem,1vw,0.5rem)}}
 .hero-title svg{{width:clamp(20px,3vw,32px);height:clamp(20px,3vw,32px)}}
@@ -388,12 +388,10 @@ button[kind="secondary"]:hover{{border-color:{ACCENT}!important;color:#fff!impor
 /* ── Hide ── */
 #MainMenu,footer,header{{visibility:hidden}}
 
-/* ── Full-width block reset ── */
-.main > div[data-testid="stVerticalBlock"] > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child {{
-  padding-left:0!important;padding-right:0!important;max-width:100%!important
-}}
-.block-container {{padding-left:0!important;padding-right:0!important;max-width:100%!important}}
-.block-container > div:first-child > div:first-child > div:first-child {{padding-left:1.5rem!important;padding-right:1.5rem!important;max-width:min(1400px,100%);margin:0 auto}}
+/* ── Prevent horizontal overflow ── */
+html,body,.stApp{{overflow-x:clip;max-width:100%}}
+.block-container {{max-width:100%;padding-left:0!important;padding-right:0!important}}
+.block-container > div:first-child > div:first-child > div:first-child {{padding-left:1.5rem!important;padding-right:1.5rem!important;max-width:min(1400px,100%);margin:0 auto;width:100%;box-sizing:border-box}}
 @media(max-width:768px){{.block-container > div:first-child > div:first-child > div:first-child {{padding-left:1rem!important;padding-right:1rem!important}}}}
 
 /* ── Desktop wide (>1200px) ── */
