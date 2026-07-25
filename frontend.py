@@ -400,7 +400,9 @@ button[kind="secondary"]:hover{{border-color:{ACCENT}!important;color:#fff!impor
 /* ── Responsive ── */
 @media(max-width:768px){{
 .hero-title{{font-size:1.6rem}}
+.hero-sub{{font-size:0.85rem;max-width:90%}}
 .hero-wrap{{height:280px}}
+.hero-ct{{padding:1rem!important}}
 .metric-row,.ds_cols{{flex-wrap:wrap}}
 .metric-box,.dash-stat{{min-width:45%}}
 .quick-dest{{height:60px}}
@@ -408,12 +410,33 @@ button[kind="secondary"]:hover{{border-color:{ACCENT}!important;color:#fff!impor
 .search-card{{padding:1rem!important}}
 div[data-testid="column"] button{{font-size:0.75rem!important;padding:0.4rem 0.6rem!important}}
 .stDownloadButton,div[data-testid="stDownloadButton"]{{width:100%!important}}
+.stTabs [data-baseweb="tab"]{{font-size:0.75rem!important;padding:0.3rem 0.6rem!important}}
+.photo-grid{{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important}}
+.photo-grid img{{height:120px!important}}
+.timeline{{padding-left:1.2rem!important}}
+.final-card{{padding:1rem!important;font-size:0.85rem!important}}
+.pipeline-svg{{max-width:100%!important}}
+div.stButton > button{{font-size:0.85rem!important;padding:0.5rem 1rem!important}}
+.st-emotion-cache-4cktc5 img{{max-height:280px!important}}
 }}
 @media(max-width:480px){{
-.hero-title{{font-size:1.2rem}}
+.hero-title{{font-size:1.1rem}}
+.hero-sub{{font-size:0.75rem;max-width:100%}}
 .hero-wrap{{height:200px}}
-.stSelectbox div[data-baseweb="select"]{{font-size:0.8rem!important}}
-.stRadio div[role="radiogroup"] label{{font-size:0.7rem!important;padding:0.2rem 0.5rem!important}}
+.hero-ct{{padding:0.8rem!important}}
+.stSelectbox div[data-baseweb="select"]{{font-size:0.75rem!important}}
+.stRadio div[role="radiogroup"] label{{font-size:0.65rem!important;padding:0.15rem 0.4rem!important}}
+.stTextArea textarea{{font-size:0.8rem!important}}
+.stNumberInput input{{font-size:0.8rem!important}}
+.stDateInput input{{font-size:0.8rem!important}}
+.stMultiSelect div[data-baseweb="select"]{{font-size:0.75rem!important}}
+.metric-box,.dash-stat{{min-width:100%;margin-bottom:0.3rem}}
+.quick-dest{{height:50px}}
+.dash-stat-val{{font-size:1rem!important}}
+.result-card{{padding:0.7rem!important;font-size:0.78rem!important}}
+.sec-head span{{font-size:0.9rem!important}}
+.wizard_indicator > div{{gap:0.2rem!important}}
+.st-emotion-cache-4cktc5 img{{max-height:200px!important}}
 }}
 </style>
 """
