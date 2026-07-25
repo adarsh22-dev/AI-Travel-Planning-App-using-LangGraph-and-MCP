@@ -1,0 +1,31 @@
+from typing import Annotated, Any, TypedDict
+import operator
+from langchain_core.messages import AnyMessage
+
+def merge_dicts(a: dict, b: dict) -> dict:
+    return {**a, **b}
+
+class TravelState(TypedDict, total=False):
+    messages: Annotated[list[AnyMessage], operator.add]
+    user_id: str
+    user_query: str
+    model_name: str
+
+    trip_constraints: dict[str, Any]
+    selected_agents: list[str]
+    supervisor_reasoning: str
+
+    flight_results: str
+    hotel_results: str
+    weather_results: str
+    budget_results: str
+    itinerary: str
+
+    approval_request: str
+    human_feedback: str
+    approved: bool
+
+    final_response: str
+    llm_calls: Annotated[int, operator.add]
+    agent_times: Annotated[dict, merge_dicts]
+    active_agents: list

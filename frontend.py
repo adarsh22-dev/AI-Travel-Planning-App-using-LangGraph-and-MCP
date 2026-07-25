@@ -4,8 +4,9 @@ import folium
 from streamlit_folium import st_folium
 from datetime import datetime, timedelta
 from langchain_core.messages import HumanMessage
+from langgraph.types import Command
 from fpdf import FPDF
-from main import app
+from graph import app
 from mcp_client import get_destination_photos_sync, get_destination_events_sync
 import markdown as _mdlib
 
@@ -737,24 +738,25 @@ if lr and not generate:
     st.markdown("---")
     st.markdown(f"<div class='sec-head'>{ICON('layers',16)}<span>Trip Dashboard</span></div>", unsafe_allow_html=True)
 
-    lr_flight = lr.get("flight",""); lr_hotel = lr.get("hotel",""); lr_weather = lr.get("weather",""); lr_itin = lr.get("itinerary","")
+    lr_flight = lr.get("flight",""); lr_hotel = lr.get("hotel",""); lr_weather = lr.get("weather",""); lr_budget = lr.get("budget",""); lr_itin = lr.get("itinerary","")
     def lr_cnt(txt, kw):
         if not txt: return 0
         return len([l for l in txt.split('\n') if l.strip()[:5].startswith(kw)])
     f_cnt = lr_cnt(lr_flight, ('* ','- ','✓','Flig','Airl','✈','Air ','Rout'))
     h_cnt = lr_cnt(lr_hotel, ('* ','- ','✓','Hote','🏨','⭐','Room','Stay'))
     w_cnt = lr_cnt(lr_weather, ('°','°C','Day','fore','Morn','Afft','Even'))
+    b_cnt = 1 if lr_budget else 0
     i_cnt = lr_cnt(lr_itin, ('**Da','### ','Day ','- Da','★'))
     def lr_fmt(n):
         if n == 0: return ("✓", "1.1rem")
         return (str(n), "1.3rem" if n < 999 else "1rem")
-    ds_cols = st.columns(4)
-    for col, (ik, raw, lb) in zip(ds_cols, [("Plane",f_cnt,"Flights"),("Building",h_cnt,"Hotels"),("Sun",w_cnt,"Weather"),("Calendar",i_cnt,"Itinerary")]):
+    ds_cols = st.columns(5)
+    for col, (ik, raw, lb) in zip(ds_cols, [("Plane",f_cnt,"Flights"),("Building",h_cnt,"Hotels"),("Sun",w_cnt,"Weather"),("Dollar",b_cnt,"Budget"),("Calendar",i_cnt,"Itinerary")]):
         v, fs = lr_fmt(raw)
         with col:
             st.markdown(f"<div class='dash-stat'><div class='dash-stat-val' style='font-size:{fs};'>{v}</div><div class='dash-stat-lbl'>{ICON(ik,10)} {lb}</div></div>", unsafe_allow_html=True)
 
-    tab_pairs = [("Flight", lr_flight), ("Hotel", lr_hotel), ("Weather", lr_weather), ("Itinerary", lr_itin)]
+    tab_pairs = [("Flight", lr_flight), ("Hotel", lr_hotel), ("Weather", lr_weather), ("Budget", lr_budget), ("Itinerary", lr_itin)]
     dest_city = (lr.get("to_city","") or "").split("(")[0].strip()
     if dest_city:
         photos = get_destination_photos_sync(dest_city, 5)
@@ -784,7 +786,7 @@ if lr and not generate:
         st.download_button("Markdown", data=lr.get("fc",""), file_name=lr.get("fn","trip.md"), mime="text/markdown", use_container_width=True)
     with c_json:
         lr_fn = lr.get("fn","trip.md").replace(".md",".json")
-        lr_jc = json.dumps({"destination": lr.get("to_city","?").split("(")[0].strip() if lr.get("to_city") else "?", "generated_at": datetime.now().isoformat(), "flight": lr.get("flight",""), "hotel": lr.get("hotel",""), "weather": lr.get("weather",""), "itinerary": lr.get("itinerary","")}, indent=2, default=str)
+        lr_jc = json.dumps({"destination": lr.get("to_city","?").split("(")[0].strip() if lr.get("to_city") else "?", "generated_at": datetime.now().isoformat(), "flight": lr.get("flight",""), "hotel": lr.get("hotel",""), "weather": lr.get("weather",""), "budget": lr.get("budget",""), "itinerary": lr.get("itinerary","")}, indent=2, default=str)
         st.download_button("JSON", data=lr_jc, file_name=lr_fn, mime="application/json", use_container_width=True)
     with c_pdf:
         try:
@@ -829,133 +831,131 @@ if generate:
         if needs_hotel: user_query += " Include hotels."
 
         config = {"configurable": {"thread_id": f"{from_city[:3]}_{to_city[:3]}_{dep_date}"}}
-        collected = {"flight_results":"","hotel_results":"","weather_results":"","itinerary":"","llm_calls":0,"agent_times":{},"query_analysis":{}}
-        completed_agents, running_agent = [], None
 
         st.markdown("---")
         st.markdown(f"<div class='sec-head'>{ICON('layers',16)}<span>AI Agents Working</span></div>", unsafe_allow_html=True)
 
-        pipe_placeholder = st.empty()
-        pipe_placeholder.markdown(pipeline_svg([], None), unsafe_allow_html=True)
+        phase_holder = st.empty()
+        phase_holder.markdown(f"<div class='glass' style='padding:1.5rem;text-align:center;'><div style='font-size:1rem;color:#94adc8;'>{ICON('loader',20)} Supervisor analyzing request…</div></div>", unsafe_allow_html=True)
 
         initial_state = {
             "messages": [HumanMessage(content=user_query)],
+            "user_id": "streamlit_user",
             "user_query": user_query,
-            "query_analysis": {}, "model_name": model_name,
-            "flight_results": "", "hotel_results": "", "weather_results": "",
-            "itinerary": "", "llm_calls": 0, "agent_times": {}, "active_agents": [],
+            "model_name": model_name,
+            "selected_agents": [],
+            "trip_constraints": {},
+            "supervisor_reasoning": "",
+            "flight_results": "", "hotel_results": "",
+            "weather_results": "", "budget_results": "",
+            "itinerary": "", "approval_request": "",
+            "human_feedback": "", "approved": False,
+            "final_response": "",
+            "llm_calls": 0, "agent_times": {}, "active_agents": [],
         }
 
-        skel_holder = st.empty()
-        skel_holder.markdown(f"<div class='glass' style='padding:1rem;margin-bottom:0.6rem;'><div style='display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;color:#6a8aaa;font-size:0.8rem;'>{ICON('loader',14)} Agents initializing…</div>{SKELETON_CARDS()}</div>", unsafe_allow_html=True)
-
         try:
-            for chunk in app.stream(initial_state, config=config, stream_mode="updates"):
-                skel_holder.empty()
-                for node_name, state_update in chunk.items():
-                    running_agent = node_name
-                    ik, lb = AGENT_META.get(node_name, ("settings",node_name))
-                    pipe_placeholder.markdown(pipeline_svg(completed_agents, running_agent), unsafe_allow_html=True)
+            with st.spinner("Planning your trip..."):
+                phase_holder.markdown(
+                    f"<div class='glass' style='padding:1.5rem;text-align:center;'>"
+                    f"<div style='font-size:1rem;color:#94adc8;'>{ICON('loader',20)} Running specialist agents…</div>"
+                    f"</div>", unsafe_allow_html=True
+                )
+                result = app.invoke(initial_state, config=config)
 
-                    with st.status(lb, state="running", expanded=True):
-                        res_placeholder = st.empty()
-                        res_placeholder.markdown(f"<div style='padding:0.3rem 0;'>{SKELETON_CARDS()}</div>", unsafe_allow_html=True)
-                        if node_name == "query_analyzer":
-                            a = state_update.get("query_analysis",{})
-                            collected["query_analysis"] = a
-                            if a:
-                                tags=[]
-                                if a.get("destination"): tags.append(f"{ICON('map',10)} {a['destination']}")
-                                if a.get("duration_days"): tags.append(f"{ICON('calendar',10)} {a['duration_days']}d")
-                                if a.get("budget"): tags.append(f"{ICON('star',10)} {a['budget']}")
-                                t=a.get("travelers",1)
-                                tags.append(f"{ICON('user',10)} {t} traveler{'s' if t>1 else ''}")
-                                res_placeholder.markdown("<div style='display:flex;flex-wrap:wrap;gap:0.5rem;padding:0.3rem 0;'>"+"".join(f"<span style='background:{AGLOW};border:1px solid {ACCENT};color:{ACCENT};padding:0.1rem 0.6rem;border-radius:12px;font-size:0.75rem;display:inline-flex;align-items:center;gap:0.2rem;'>{t}</span>" for t in tags)+"</div>",unsafe_allow_html=True)
-                        elif node_name=="parallel_agents":
-                            fr = state_update.get("flight_results","")
-                            hr = state_update.get("hotel_results","")
-                            wr = state_update.get("weather_results","")
-                            collected.update({"flight_results":fr,"hotel_results":hr,"weather_results":wr})
-                            parts = []
-                            if fr: parts.append(f"<details open><summary style='color:{ACCENT};font-weight:600;cursor:pointer;font-size:0.82rem;margin-bottom:0.2rem;'>{ICON('plane',12)} Flight</summary><div style='padding:0.2rem 0 0.5rem;font-size:0.82rem;'>{_md(fr)}</div></details>")
-                            if hr: parts.append(f"<details><summary style='color:{ACCENT};font-weight:600;cursor:pointer;font-size:0.82rem;margin-bottom:0.2rem;'>{ICON('building',12)} Hotel</summary><div style='padding:0.2rem 0 0.5rem;font-size:0.82rem;'>{_md(hr)}</div></details>")
-                            if wr: parts.append(f"<details><summary style='color:{ACCENT};font-weight:600;cursor:pointer;font-size:0.82rem;margin-bottom:0.2rem;'>{ICON('sun',12)} Weather</summary><div style='padding:0.2rem 0 0.5rem;font-size:0.82rem;'>{_md(wr)}</div></details>")
-                            res_placeholder.markdown("".join(parts) if parts else "_No data_", unsafe_allow_html=True)
-                        elif node_name=="itinerary_agent":
-                            collected["itinerary"]=state_update.get("itinerary","")
-                            res_placeholder.markdown(collected["itinerary"] or "_No itinerary_")
-                        collected["llm_calls"]=collected.get("llm_calls",0)+state_update.get("llm_calls",0)
-                        new_times = state_update.get("agent_times",{})
-                        if new_times:
-                            collected["agent_times"]={**collected.get("agent_times",{}), **new_times}
+            phase_holder.empty()
 
-                    if node_name not in completed_agents: completed_agents.append(node_name)
-        except Exception as e:
-            st.error(f"An error occurred during planning: {e}")
+            sr = result.get("supervisor_reasoning", "")
+            selected = result.get("selected_agents", [])
 
-        pipe_placeholder.markdown(pipeline_svg(completed_agents, None), unsafe_allow_html=True)
+            if not selected:
+                st.warning(f"**Guardrail blocked:** {sr}")
+                st.stop()
 
-        agents_run = len([a for a in completed_agents if a!="query_analyzer"])
-        total_time = sum(collected.get("agent_times",{}).values())
+            with st.expander(f"{ICON('brain',14)} Supervisor Plan — {', '.join(selected)}", expanded=False):
+                st.markdown(f"<div class='result-card' style='font-size:0.85rem;'>{sr}</div>", unsafe_allow_html=True)
+                tags = "".join(
+                    f"<span style='background:{AGLOW};border:1px solid {ACCENT};color:{ACCENT};"
+                    f"padding:0.1rem 0.6rem;border-radius:12px;font-size:0.75rem;display:inline-flex;"
+                    f"align-items:center;gap:0.2rem;margin:0.15rem;'>{ICON('zap',10)} {a.replace('_',' ').title()}</span>"
+                    for a in selected
+                )
+                st.markdown(f"<div style='margin-top:0.4rem;'>{tags}</div>", unsafe_allow_html=True)
 
-        fr, hr, wr, itin = collected.get("flight_results",""), collected.get("hotel_results",""), collected.get("weather_results",""), collected.get("itinerary","")
+            fr = result.get("flight_results", "")
+            hr = result.get("hotel_results", "")
+            wr = result.get("weather_results", "")
+            br = result.get("budget_results", "")
+            itin = result.get("itinerary", "")
 
-        st.markdown(
+            agent_times = result.get("agent_times", {})
+            agents_run = len([k for k in agent_times if k != "supervisor"])
+            total_time = sum(agent_times.values())
+            llm_calls = result.get("llm_calls", 0)
+
+            st.markdown(
 f"""<div class="metric-row anim-slide" style="margin-bottom:1.2rem">
 <div class="metric-box"><div class="metric-val">{agents_run}</div><div class="metric-lbl">{ICON('layers',11)} Agents</div></div>
-<div class="metric-box"><div class="metric-val">{collected['llm_calls']}</div><div class="metric-lbl">{ICON('brain',11)} LLM Calls</div></div>
+<div class="metric-box"><div class="metric-val">{llm_calls}</div><div class="metric-lbl">{ICON('brain',11)} LLM Calls</div></div>
 <div class="metric-box"><div class="metric-val">{total_time:.1f}s</div><div class="metric-lbl">{ICON('clock',11)} Time</div></div>
-<div class="metric-box"><div class="metric-val">{ICON('check',16)}</div><div class="metric-lbl">{ICON('star',11)} Ready</div></div>
+<div class="metric-box"><div class="metric-val">{ICON('check',16)}</div><div class="metric-lbl">{ICON('star',11)} Draft Ready</div></div>
 </div>""", unsafe_allow_html=True)
 
-        st.markdown(f"<div class='sec-head'>{ICON('layers',16)}<span>Trip Dashboard</span></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='sec-head'>{ICON('layers',16)}<span>Trip Dashboard</span></div>", unsafe_allow_html=True)
 
-        # ── Quick stats row ──
-        def item_count(txt, kw):
-            if not txt: return 0
-            return len([l for l in txt.split('\n') if l.strip()[:5].startswith(kw)])
+            tab_labels = ["Flight", "Hotel", "Weather", "Budget", "Itinerary"]
+            if not fr: tab_labels[0] = None
+            if not hr: tab_labels[1] = None
+            if not wr: tab_labels[2] = None
+            if not br: tab_labels[3] = None
+            if not itin: tab_labels[4] = None
+            active_tabs = [t for t in tab_labels if t is not None]
+            if active_tabs:
+                tabs = st.tabs(active_tabs)
+                for ti, tl in enumerate(active_tabs):
+                    with tabs[ti]:
+                        content = {"Flight": fr, "Hotel": hr, "Weather": wr, "Budget": br, "Itinerary": itin}[tl]
+                        st.markdown(f"<div class='result-card anim-scale'>{_md(content) or '_No data_'}</div>", unsafe_allow_html=True)
 
-        flight_count = item_count(fr, ('* ','- ','✓','Flig','Airl','✈','Air ','Rout')) if needs_flight else -1
-        hotel_count = item_count(hr, ('* ','- ','✓','Hote','🏨','⭐','Room','Stay')) if needs_hotel else -1
-        weather_count = item_count(wr, ('°','°C','Day','fore','Morn','Afft','Even')) if wr else 0
-        itin_count = item_count(itin, ('**Da','### ','Day ','- Da','★')) if itin else 0
+            # ── Human Approval ──
+            if "__interrupt__" in result:
+                st.markdown("---")
+                st.markdown(f"<div class='sec-head'>{ICON('user',16)}<span>Human Approval Required</span></div>", unsafe_allow_html=True)
 
-        def fmt_count(n, unit):
-            if n == -1: return ("—", "0.9rem")
-            if n == 0: return ("✓", "1.1rem")
-            return (str(n), "1.3rem" if n < 999 else "1rem")
+                col_a, col_b = st.columns([1, 1])
+                with col_a:
+                    approved = st.radio("Approve this itinerary?", ["Yes, looks good", "No, revise it"], horizontal=True)
+                with col_b:
+                    fb = st.text_area("Feedback (if revising)", placeholder="e.g., Add more budget options, change pace...", disabled=(approved == "Yes, looks good"))
 
-        ds_cols = st.columns(4)
-        for col, (ik, raw, lb) in zip(ds_cols, [("Plane", flight_count, "Flights"), ("Building", hotel_count, "Hotels"), ("Sun", weather_count, "Weather"), ("Calendar", itin_count, "Itinerary")]):
-            val, fs = fmt_count(raw, lb)
-            with col:
-                st.markdown(f"<div class='dash-stat'><div class='dash-stat-val' style='font-size:{fs};'>{val}</div><div class='dash-stat-lbl'>{ICON(ik,10)} {lb}</div></div>", unsafe_allow_html=True)
+                if st.button("Submit Approval", type="primary", use_container_width=True):
+                    with st.spinner("Finalizing your travel plan..."):
+                        final_result = app.invoke(
+                            Command(resume={
+                                "approved": approved == "Yes, looks good",
+                                "feedback": fb if approved != "Yes, looks good" else "",
+                            }),
+                            config=config,
+                        )
 
-        # ── Tabbed results ──
-        tab_labels = ["Flight", "Hotel", "Weather", "Itinerary"]
-        if needs_flight == False and not fr: tab_labels[0] = None
-        if needs_hotel == False and not hr: tab_labels[1] = None
-        active_tabs = [t for t in tab_labels if t is not None]
-        if active_tabs:
-            tabs = st.tabs(active_tabs)
-            for ti, tl in enumerate(active_tabs):
-                with tabs[ti]:
-                    if tl == "Flight":
-                        st.markdown(f"<div class='result-card anim-scale'>{_md(fr) or '_No flight data available_'}</div>" if fr else "_No flight data_", unsafe_allow_html=True)
-                    elif tl == "Hotel":
-                        st.markdown(f"<div class='result-card anim-scale'>{_md(hr) or '_No hotel data available_'}</div>" if hr else "_No hotel data_", unsafe_allow_html=True)
-                    elif tl == "Weather":
-                        st.markdown(f"<div class='result-card anim-scale'>{_md(wr) or '_No weather data available_'}</div>" if wr else "_No weather data_", unsafe_allow_html=True)
-                    elif tl == "Itinerary":
-                        st.markdown(f"<div class='result-card anim-scale'>{_md(itin) or '_No itinerary_'}</div>" if itin else "_No itinerary_", unsafe_allow_html=True)
+                    final_resp = final_result.get("final_response", "")
+                    if final_resp:
+                        st.markdown("---")
+                        st.markdown(f"<div class='sec-head'>{ICON('sparkles',16)}<span>Final Travel Plan</span></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div class='final-card'>{_md(final_resp)}</div>", unsafe_allow_html=True)
 
-        # Save file
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        fn = f"trip_{to_city[:3]}_{ts}.md"
-        sd = os.path.join(os.path.dirname(__file__),"travel_plans")
-        os.makedirs(sd, exist_ok=True)
+                    final_itin = final_result.get("final_response", "") or itin
+                    final_llm = final_result.get("llm_calls", llm_calls)
+                    final_times = final_result.get("agent_times", agent_times)
+                    final_agents = len([k for k in final_times if k != "supervisor"])
+                    final_total = sum(final_times.values())
 
-        fc = f"""# {to_city.split('(')[0].strip()} Trip Plan
+                    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    fn = f"trip_{to_city[:3]}_{ts}.md"
+                    sd = os.path.join(os.path.dirname(__file__), "travel_plans")
+                    os.makedirs(sd, exist_ok=True)
+
+                    fc = f"""# {to_city.split('(')[0].strip()} Trip Plan
 **From:** {from_city} → **To:** {to_city}
 **Dates:** {dep_date} → {ret_date} | **Travelers:** {adults} adult{'s' if adults>1 else ''}{f', {children} child' if children else ''}
 **Class:** {travel_class} | **Budget:** {budget} | **Pace:** {pace}
@@ -978,50 +978,157 @@ f"""<div class="metric-row anim-slide" style="margin-bottom:1.2rem">
 
 ---
 
+## Budget Analysis
+{br or 'Not requested'}
+
+---
+
+## Itinerary
+{final_itin or 'N/A'}
+
+---
+
+*LLM Calls: {final_llm} | Agents: {final_agents} | Time: {final_total:.1f}s*
+"""
+                    with open(os.path.join(sd, fn), "w", encoding="utf-8") as f:
+                        f.write(fc)
+
+                    short = f"{to_city.split('(')[0].strip()} · {dep_date}"
+                    if short not in st.session_state.history:
+                        st.session_state.history.append(short)
+                    events_str = get_destination_events_sync(to_city.split("(")[0].strip())
+                    st.session_state.trip_history[short] = {
+                        "itinerary": final_itin, "flight": fr, "hotel": hr,
+                        "weather": wr, "budget": br,
+                        "agents": final_agents, "llm_calls": final_llm,
+                        "time": final_total, "to_city": to_city, "from_city": from_city,
+                        "fc": fc, "fn": fn, "events": events_str,
+                    }
+                    _save_history()
+
+                    dl_col, json_col, pdf_col, info_col = st.columns([1, 1, 1, 2])
+                    with dl_col:
+                        st.download_button("Markdown", data=fc, file_name=fn, mime="text/markdown", use_container_width=True)
+                    with json_col:
+                        fj = fn.replace(".md", ".json")
+                        jc = json.dumps({
+                            "destination": to_city.split("(")[0].strip(),
+                            "origin": from_city.split("(")[0].strip(),
+                            "dates": {"departure": dep_date, "return": ret_date},
+                            "travelers": {"adults": adults, "children": children},
+                            "class": travel_class, "budget": budget, "pace": pace,
+                            "interests": list(interests) if isinstance(interests, list) else [],
+                            "flight": fr, "hotel": hr, "weather": wr,
+                            "budget": br, "itinerary": final_itin,
+                            "generated_at": datetime.now().isoformat(),
+                        }, indent=2, default=str)
+                        st.download_button("JSON", data=jc, file_name=fj, mime="application/json", use_container_width=True)
+                    with pdf_col:
+                        try:
+                            pdf_data = markdown_to_pdf(fn.replace(".md", "").replace("_", " "), fc)
+                            st.download_button("PDF", data=pdf_data, file_name=fn.replace(".md", ".pdf"), mime="application/pdf", use_container_width=True)
+                        except Exception:
+                            st.button("PDF", disabled=True, use_container_width=True)
+                    with info_col:
+                        st.markdown(f"<div class='save-bar'>{ICON('folder',14)} Saved — <code>travel_plans/{fn}</code></div>", unsafe_allow_html=True)
+
+                    st.session_state.last_result = {
+                        "itinerary": final_itin, "flight": fr, "hotel": hr,
+                        "weather": wr, "budget": br,
+                        "agents": final_agents, "llm_calls": final_llm,
+                        "time": final_total, "to_city": to_city, "from_city": from_city,
+                        "fc": fc, "fn": fn, "events": events_str,
+                    }
+            else:
+                ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                fn = f"trip_{to_city[:3]}_{ts}.md"
+                sd = os.path.join(os.path.dirname(__file__), "travel_plans")
+                os.makedirs(sd, exist_ok=True)
+
+                fc = f"""# {to_city.split('(')[0].strip()} Trip Plan
+**From:** {from_city} → **To:** {to_city}
+**Dates:** {dep_date} → {ret_date} | **Travelers:** {adults} adult{'s' if adults>1 else ''}{f', {children} child' if children else ''}
+**Class:** {travel_class} | **Budget:** {budget} | **Pace:** {pace}
+**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+---
+
+## Flight Information
+{fr or 'Not requested'}
+
+---
+
+## Hotel Information
+{hr or 'Not requested'}
+
+---
+
+## Weather Information
+{wr or 'Not requested'}
+
+---
+
+## Budget Analysis
+{br or 'Not requested'}
+
+---
+
 ## Itinerary
 {itin or 'N/A'}
 
 ---
 
-*LLM Calls: {collected['llm_calls']} | Agents: {agents_run} | Time: {total_time:.1f}s*
+*LLM Calls: {llm_calls} | Agents: {agents_run} | Time: {total_time:.1f}s*
 """
-        with open(os.path.join(sd,fn),"w",encoding="utf-8") as f: f.write(fc)
+                with open(os.path.join(sd, fn), "w", encoding="utf-8") as f:
+                    f.write(fc)
 
-        short = f"{to_city.split('(')[0].strip()} · {dep_date}"
-        if short not in st.session_state.history: st.session_state.history.append(short)
-        events_str = get_destination_events_sync(to_city.split("(")[0].strip())
-        st.session_state.trip_history[short] = {
-            "itinerary": itin, "flight": fr, "hotel": hr, "weather": wr,
-            "agents": agents_run, "llm_calls": collected["llm_calls"], "time": total_time,
-            "to_city": to_city, "from_city": from_city, "fc": fc, "fn": fn, "events": events_str,
-        }
-        _save_history()
+                short = f"{to_city.split('(')[0].strip()} · {dep_date}"
+                if short not in st.session_state.history:
+                    st.session_state.history.append(short)
+                events_str = get_destination_events_sync(to_city.split("(")[0].strip())
+                st.session_state.trip_history[short] = {
+                    "itinerary": itin, "flight": fr, "hotel": hr,
+                    "weather": wr, "budget": br,
+                    "agents": agents_run, "llm_calls": llm_calls,
+                    "time": total_time, "to_city": to_city, "from_city": from_city,
+                    "fc": fc, "fn": fn, "events": events_str,
+                }
+                _save_history()
 
-        dl_col, json_col, pdf_col, info_col = st.columns([1, 1, 1, 2])
-        with dl_col:
-            st.download_button("Markdown", data=fc, file_name=fn, mime="text/markdown", use_container_width=True)
-        with json_col:
-            fj = fn.replace(".md", ".json")
-            jc = json.dumps({
-                "destination": to_city.split("(")[0].strip(), "origin": from_city.split("(")[0].strip(),
-                "dates": {"departure": dep_date, "return": ret_date},
-                "travelers": {"adults": adults, "children": children},
-                "class": travel_class, "budget": budget, "pace": pace,
-                "interests": list(interests) if isinstance(interests, list) else [],
-                "flight": fr, "hotel": hr, "weather": wr, "itinerary": itin,
-                "generated_at": datetime.now().isoformat(),
-            }, indent=2, default=str)
-            st.download_button("JSON", data=jc, file_name=fj, mime="application/json", use_container_width=True)
-        with pdf_col:
-            try:
-                pdf_data = markdown_to_pdf(fn.replace(".md","").replace("_"," "), fc)
-                st.download_button("PDF", data=pdf_data, file_name=fn.replace(".md",".pdf"), mime="application/pdf", use_container_width=True)
-            except Exception as e:
-                st.button("PDF", disabled=True, use_container_width=True)
-        with info_col: st.markdown(f"<div class='save-bar'>{ICON('folder',14)} Saved — <code>travel_plans/{fn}</code></div>", unsafe_allow_html=True)
+                dl_col, json_col, pdf_col, info_col = st.columns([1, 1, 1, 2])
+                with dl_col:
+                    st.download_button("Markdown", data=fc, file_name=fn, mime="text/markdown", use_container_width=True)
+                with json_col:
+                    fj = fn.replace(".md", ".json")
+                    jc = json.dumps({
+                        "destination": to_city.split("(")[0].strip(),
+                        "origin": from_city.split("(")[0].strip(),
+                        "dates": {"departure": dep_date, "return": ret_date},
+                        "travelers": {"adults": adults, "children": children},
+                        "class": travel_class, "budget": budget, "pace": pace,
+                        "interests": list(interests) if isinstance(interests, list) else [],
+                        "flight": fr, "hotel": hr, "weather": wr,
+                        "budget": br, "itinerary": itin,
+                        "generated_at": datetime.now().isoformat(),
+                    }, indent=2, default=str)
+                    st.download_button("JSON", data=jc, file_name=fj, mime="application/json", use_container_width=True)
+                with pdf_col:
+                    try:
+                        pdf_data = markdown_to_pdf(fn.replace(".md", "").replace("_", " "), fc)
+                        st.download_button("PDF", data=pdf_data, file_name=fn.replace(".md", ".pdf"), mime="application/pdf", use_container_width=True)
+                    except Exception:
+                        st.button("PDF", disabled=True, use_container_width=True)
+                with info_col:
+                    st.markdown(f"<div class='save-bar'>{ICON('folder',14)} Saved — <code>travel_plans/{fn}</code></div>", unsafe_allow_html=True)
 
-        st.session_state.last_result = {
-            "itinerary": itin, "flight": fr, "hotel": hr, "weather": wr,
-            "agents": agents_run, "llm_calls": collected["llm_calls"], "time": total_time,
-            "to_city": to_city, "from_city": from_city, "fc": fc, "fn": fn, "events": events_str,
-        }
+                st.session_state.last_result = {
+                    "itinerary": itin, "flight": fr, "hotel": hr,
+                    "weather": wr, "budget": br,
+                    "agents": agents_run, "llm_calls": llm_calls,
+                    "time": total_time, "to_city": to_city, "from_city": from_city,
+                    "fc": fc, "fn": fn, "events": events_str,
+                }
+
+        except Exception as e:
+            st.error(f"An error occurred during planning: {e}")
