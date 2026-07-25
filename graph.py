@@ -54,7 +54,9 @@ def route_after_agent(current_agent: str):
         for next_agent in AGENT_ORDER[idx + 1:]:
             if next_agent in selected:
                 return next_agent
-        return "itinerary_agent"
+        if "itinerary_agent" in selected:
+            return "itinerary_agent"
+        return END
     return route
 
 

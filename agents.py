@@ -79,19 +79,23 @@ User request:
 
     routing_prompt = f"""
 You are the supervisor of a real-world multi-agent travel planning system.
-
-Decide which specialist agents are needed for this user request.
+Your job is to select ONLY the agents that are actually needed.
 
 Available agents:
-- flight_agent: use when flights, airports, airlines, routes, or airfare guidance are needed
-- hotel_agent: use when hotels, stays, neighborhoods, or accommodation are needed
-- weather_agent: use when weather, climate, season, packing, or forecast is useful
-- budget_agent: use when budget, affordability, cost, or price constraints are mentioned
-- itinerary_agent: almost always needed to produce the travel plan
+- flight_agent: only when flights/airlines/airfare guidance is requested
+- hotel_agent: only when hotels/accommodation/stays are requested
+- weather_agent: only when weather/climate/forecast is requested
+- budget_agent: only when budget/cost/affordability is mentioned
+- itinerary_agent: only when a day-by-day plan or schedule is needed
 
-Return only JSON with this schema:
+Return only JSON. Do NOT include agents that aren't explicitly needed.
+Example: "Plan a trip to Paris" -> select only ["itinerary_agent"]
+Example: "Find cheap flights to London" -> select only ["flight_agent"]
+Example: "5-star hotels in Dubai with budget" -> select only ["hotel_agent", "budget_agent"]
+
+Schema:
 {{
-  "selected_agents": ["flight_agent", "hotel_agent", "weather_agent", "budget_agent", "itinerary_agent"],
+  "selected_agents": [],
   "trip_constraints": {{
     "destination": "",
     "origin": "",

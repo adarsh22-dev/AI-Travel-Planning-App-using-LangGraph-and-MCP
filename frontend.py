@@ -1216,14 +1216,22 @@ if st.session_state.approval_pending and st.session_state.pending_data:
         fb = st.text_area("Feedback (if revising)", placeholder="e.g., Add more budget options, change pace...", disabled=(approved == "Yes, looks good"), key="approval_fb")
 
     if st.button("Submit Approval", type="primary", use_container_width=True, key="submit_approval"):
-        with st.spinner("Finalizing your travel plan..."):
-            final_result = app.invoke(
-                Command(resume={
-                    "approved": approved == "Yes, looks good",
-                    "feedback": fb if approved != "Yes, looks good" else "",
-                }),
-                config=st.session_state.pending_config,
-            )
+        try:
+            with st.spinner("Finalizing your travel plan..."):
+                final_result = app.invoke(
+                    Command(resume={
+                        "approved": approved == "Yes, looks good",
+                        "feedback": fb if approved != "Yes, looks good" else "",
+                    }),
+                    config=st.session_state.pending_config,
+                )
+        except Exception as e:
+            st.error(f"Approval failed: {e}")
+            st.session_state.approval_pending = False
+            st.session_state.pending_result = None
+            st.session_state.pending_config = None
+            st.session_state.pending_data = None
+            st.stop()
 
         final_resp = final_result.get("final_response", "")
         if final_resp:
