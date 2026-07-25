@@ -1048,7 +1048,7 @@ if generate:
                 st.warning(f"**Guardrail blocked:** {sr}")
                 st.stop()
 
-            with st.expander(f"{ICON('brain',14,color=ACCENT)} Supervisor Plan — {', '.join(selected)}", expanded=False):
+            with st.expander(f"🧠 Supervisor Plan — {', '.join(selected)}", expanded=False):
                 st.markdown(f"<div class='result-card' style='font-size:0.85rem;'>{sr}</div>", unsafe_allow_html=True)
                 tags = "".join(
                     f"<span style='background:{AGLOW};border:1px solid {ACCENT};color:{ACCENT};"
