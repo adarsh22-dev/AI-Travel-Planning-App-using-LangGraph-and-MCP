@@ -279,7 +279,7 @@ div.stButton > button[data-testid*="hist_"]:hover{{border-color:{ACCENT} !import
 /* ── Hero ── */
 .hero-wrap{{position:relative;width:100vw;margin-left:calc(-50vw + 50%);border-radius:0;overflow:hidden;margin-bottom:1.5rem;height:600px;background:linear-gradient(135deg,#0a1628 0%,#0b4953 50%,#0a1628 100%);background-size:200% 200%;animation:gradientShift 8s ease infinite}}
 .hero-bg{{width:100%;height:100%;object-fit:cover;display:block;position:absolute;top:0;left:0}}
-.st-emotion-cache-4cktc5 img{{max-width:100%;vertical-align:middle;object-fit:cover}}
+.st-emotion-cache-4cktc5 img{{max-width:100%;vertical-align:middle;object-fit:contain}}
 .hero-ct{{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1.5rem 2rem;background:rgba(0,0,0,0.45);backdrop-filter:blur(2px)}}
 .hero-title{{font-size:2.5rem;font-weight:800;color:#fff;margin:0 0 0.25rem;display:flex;align-items:center;gap:0.5rem}}
 .hero-sub{{color:#94adc8;font-size:1rem;max-width:600px;line-height:1.5}}
