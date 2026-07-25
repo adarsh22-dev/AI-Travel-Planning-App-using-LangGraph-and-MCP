@@ -277,10 +277,10 @@ div.stButton > button[data-testid*="hist_"]{{background:rgba(14,26,43,0.5) !impo
 div.stButton > button[data-testid*="hist_"]:hover{{border-color:{ACCENT} !important;color:#fff !important;background:rgba(17,30,50,0.9) !important}}
 
 /* ── Hero ── */
-.hero-wrap{{position:relative;width:100vw;margin-left:calc(-50vw + 50%);border-radius:0;overflow:hidden;margin-bottom:1.5rem;height:240px;background:linear-gradient(135deg,#0a1628 0%,{darken(ACCENT,0.65)} 50%,#0a1628 100%);background-size:200% 200%;animation:gradientShift 8s ease infinite}}
-.hero-bg{{width:100%;height:100%;object-fit:cover;display:block;filter:brightness(0.18)saturate(0.3);position:absolute;top:0;left:0}}
+.hero-wrap{{position:relative;width:100vw;margin-left:calc(-50vw + 50%);border-radius:0;overflow:hidden;margin-bottom:1.5rem;height:600px;background:linear-gradient(135deg,#0a1628 0%,#0b4953 50%,#0a1628 100%);background-size:200% 200%;animation:gradientShift 8s ease infinite}}
+.hero-bg{{width:100%;height:100%;object-fit:cover;display:block;position:absolute;top:0;left:0}}
 .st-emotion-cache-4cktc5 img{{max-width:100%;vertical-align:middle;object-fit:cover}}
-.hero-ct{{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1.5rem 2rem;background:rgba(0,0,0,0.1);backdrop-filter:blur(2px)}}
+.hero-ct{{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1.5rem 2rem;background:rgba(0,0,0,0.45);backdrop-filter:blur(2px)}}
 .hero-title{{font-size:2.5rem;font-weight:800;color:#fff;margin:0 0 0.25rem;display:flex;align-items:center;gap:0.5rem}}
 .hero-sub{{color:#94adc8;font-size:1rem;max-width:600px;line-height:1.5}}
 
@@ -400,7 +400,7 @@ button[kind="secondary"]:hover{{border-color:{ACCENT}!important;color:#fff!impor
 /* ── Responsive ── */
 @media(max-width:768px){{
 .hero-title{{font-size:1.6rem}}
-.hero-wrap{{height:160px}}
+.hero-wrap{{height:280px}}
 .metric-row,.ds_cols{{flex-wrap:wrap}}
 .metric-box,.dash-stat{{min-width:45%}}
 .quick-dest{{height:60px}}
@@ -411,7 +411,7 @@ div[data-testid="column"] button{{font-size:0.75rem!important;padding:0.4rem 0.6
 }}
 @media(max-width:480px){{
 .hero-title{{font-size:1.2rem}}
-.hero-wrap{{height:120px}}
+.hero-wrap{{height:200px}}
 .stSelectbox div[data-baseweb="select"]{{font-size:0.8rem!important}}
 .stRadio div[role="radiogroup"] label{{font-size:0.7rem!important;padding:0.2rem 0.5rem!important}}
 }}
