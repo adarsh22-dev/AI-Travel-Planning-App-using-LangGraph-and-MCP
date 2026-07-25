@@ -25,20 +25,24 @@ from state import TravelState
 FALLBACK_MODELS = ["llama-3.1-8b-instant", "gemma2-9b-it", "mixtral-8x7b-32768"]
 
 def _llm_text(system: str, prompt: str, model: str = "llama-3.3-70b-versatile") -> str:
+    return _llm_invoke(system, prompt, model).content
+
+def _llm_invoke(system: str, prompt: str, model: str = "llama-3.3-70b-versatile"):
     _models = [model] + [m for m in FALLBACK_MODELS if m != model]
+    last_err = None
     for m in _models:
         llm = get_llm(m)
         try:
-            response = llm.invoke([
+            return llm.invoke([
                 SystemMessage(content=system),
                 HumanMessage(content=prompt),
             ])
-            return response.content
         except Exception as e:
+            last_err = e
             if "429" in str(e) or "rate_limit" in str(e).lower():
                 continue
             raise
-    raise Exception(f"All models hit rate limit. Last error: {e}")
+    raise last_err
 
 
 def _json_from_llm(text: str) -> dict:
@@ -145,7 +149,6 @@ def flight_agent(state: TravelState):
     t0 = time.time()
     query = state["user_query"]
     model = state.get("model_name", "llama-3.3-70b-versatile")
-    llm = get_llm(model)
 
     airports = asyncio.run(aviation_mcp_call("list_airports"))
     airlines = asyncio.run(aviation_mcp_call("list_airlines"))
@@ -161,10 +164,7 @@ def flight_agent(state: TravelState):
         airlines=str(airlines)[:2500],
     )
 
-    response = llm.invoke([
-        SystemMessage(content=FLIGHT_SYSTEM_PROMPT),
-        HumanMessage(content=prompt),
-    ])
+    response = _llm_invoke(FLIGHT_SYSTEM_PROMPT, prompt, model)
 
     return {
         "flight_results": response.content,
@@ -178,15 +178,11 @@ def hotel_agent(state: TravelState):
     t0 = time.time()
     query = state["user_query"]
     model = state.get("model_name", "llama-3.3-70b-versatile")
-    llm = get_llm(model)
 
     raw = asyncio.run(tavily_mcp_search(f"Best hotels for {query}"))
     prompt = HOTEL_PROMPT_TEMPLATE.format(query=query, raw_data=str(raw)[:4000])
 
-    response = llm.invoke([
-        SystemMessage(content=HOTEL_SYSTEM_PROMPT),
-        HumanMessage(content=prompt),
-    ])
+    response = _llm_invoke(HOTEL_SYSTEM_PROMPT, prompt, model)
 
     return {
         "hotel_results": response.content,
@@ -200,7 +196,6 @@ def weather_agent(state: TravelState):
     t0 = time.time()
     query = state["user_query"]
     model = state.get("model_name", "llama-3.3-70b-versatile")
-    llm = get_llm(model)
 
     constraints = state.get("trip_constraints", {})
     city = constraints.get("destination", "")
@@ -222,10 +217,7 @@ def weather_agent(state: TravelState):
         forecast=str(f)[:3000],
     )
 
-    response = llm.invoke([
-        SystemMessage(content=WEATHER_SYSTEM_PROMPT),
-        HumanMessage(content=prompt),
-    ])
+    response = _llm_invoke(WEATHER_SYSTEM_PROMPT, prompt, model)
 
     return {
         "weather_results": response.content,
@@ -238,7 +230,6 @@ def weather_agent(state: TravelState):
 def budget_agent(state: TravelState):
     t0 = time.time()
     model = state.get("model_name", "llama-3.3-70b-versatile")
-    llm = get_llm(model)
 
     prompt = BUDGET_PROMPT_TEMPLATE.format(
         query=state["user_query"],
@@ -248,10 +239,7 @@ def budget_agent(state: TravelState):
         weather=state.get("weather_results", "Not available")[:1000],
     )
 
-    response = llm.invoke([
-        SystemMessage(content=BUDGET_SYSTEM_PROMPT),
-        HumanMessage(content=prompt),
-    ])
+    response = _llm_invoke(BUDGET_SYSTEM_PROMPT, prompt, model)
 
     return {
         "budget_results": response.content,
@@ -264,7 +252,6 @@ def budget_agent(state: TravelState):
 def itinerary_agent(state: TravelState):
     t0 = time.time()
     model = state.get("model_name", "llama-3.3-70b-versatile")
-    llm = get_llm(model)
 
     prompt = ITINERARY_PROMPT_TEMPLATE.format(
         query=state["user_query"],
@@ -273,10 +260,7 @@ def itinerary_agent(state: TravelState):
         weather=state.get("weather_results", "Not requested")[:2000],
     )
 
-    response = llm.invoke([
-        SystemMessage(content=ITINERARY_SYSTEM_PROMPT),
-        HumanMessage(content=prompt),
-    ])
+    response = _llm_invoke(ITINERARY_SYSTEM_PROMPT, prompt, model)
 
     draft = response.content
     approval_request = f"""
@@ -353,25 +337,7 @@ Trip constraints:
 {state.get('trip_constraints', {})}
 """
 
-    _models = [model] + [m for m in FALLBACK_MODELS if m != model]
-    response = None
-    last_err = None
-    for m in _models:
-        llm = get_llm(m)
-        try:
-            response = llm.invoke([
-                SystemMessage(content=FINAL_RESPONSE_SYSTEM_PROMPT),
-                HumanMessage(content=prompt),
-            ])
-            break
-        except Exception as e:
-            last_err = e
-            if "429" in str(e) or "rate_limit" in str(e).lower():
-                continue
-            raise
-
-    if response is None:
-        raise last_err
+    response = _llm_invoke(FINAL_RESPONSE_SYSTEM_PROMPT, prompt, model)
 
     return {
         "final_response": response.content,
