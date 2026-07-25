@@ -96,53 +96,61 @@ THEME = st.session_state.theme_color
 def _san(t):
     return t.encode("ascii", "replace").decode("ascii")
 
-def _to_bytes(pdf_output):
-    if isinstance(pdf_output, bytes):
-        return pdf_output
-    if isinstance(pdf_output, bytearray):
-        return bytes(pdf_output)
-    if isinstance(pdf_output, str):
-        return pdf_output.encode("latin-1")
-    return bytes(pdf_output)
+def _dl_link(data: bytes, filename: str, label: str, mime: str, icon_label: str):
+    b64 = base64.b64encode(data).decode()
+    return f'<a href="data:{mime};base64,{b64}" download="{_san(filename)}" style="display:inline-flex;align-items:center;gap:6px;background:rgba(26,58,92,0.8);backdrop-filter:blur(8px);color:#e8f4ff;border:1px solid rgba(42,80,128,0.5);border-radius:12px;padding:0.4rem 1rem;font-size:0.85rem;font-weight:500;text-decoration:none;transition:0.2s;cursor:pointer;">{ICON(icon_label,14)} {label}</a>'
 
-def markdown_to_pdf(title: str, body: str) -> bytes:
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
-
-    pdf.set_title(_san(title[:128]))
-    pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(0, 10, _san(title[:128]), ln=2)
-    pdf.ln(3)
-    pdf.set_font("Helvetica", "", 9)
-    for line in (body or "").split("\n"):
-        clean = line.strip()
-        if not clean:
-            pdf.ln(2)
-        elif clean.startswith("###") or clean.startswith("##"):
-            pdf.set_font("Helvetica", "B", 11)
-            pdf.cell(0, 6, _san(clean.lstrip("#").strip()[:120]), ln=2)
-            pdf.set_font("Helvetica", "", 9)
-            pdf.ln(2)
-        elif clean.startswith("**") and clean.endswith("**"):
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.cell(0, 5, _san(clean.strip("*")[:120]), ln=2)
-            pdf.set_font("Helvetica", "", 9)
-        else:
-            txt = _san(clean.replace("**","").replace("*","").replace("`","").replace("_","")[:200])
-            if len(txt) > 90:
-                pdf.multi_cell(0, 4, txt)
+def markdown_to_pdf(title: str, body: str):
+    try:
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.set_title(_san(title[:128]))
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, _san(title[:128]), ln=2)
+        pdf.ln(3)
+        pdf.set_font("Helvetica", "", 9)
+        for line in (body or "").split("\n"):
+            clean = line.strip()
+            if not clean:
+                pdf.ln(2)
+            elif clean.startswith("###") or clean.startswith("##"):
+                pdf.set_font("Helvetica", "B", 11)
+                pdf.cell(0, 6, _san(clean.lstrip("#").strip()[:120]), ln=2)
+                pdf.set_font("Helvetica", "", 9)
+                pdf.ln(2)
+            elif clean.startswith("**") and clean.endswith("**"):
+                pdf.set_font("Helvetica", "B", 10)
+                pdf.cell(0, 5, _san(clean.strip("*")[:120]), ln=2)
+                pdf.set_font("Helvetica", "", 9)
             else:
-                pdf.cell(0, 4.5, txt, ln=2)
-    out = pdf.output()
-    pdf_bytes = _to_bytes(out)
-    return pdf_bytes if len(pdf_bytes) > 100 else b""
+                txt = _san(clean.replace("**","").replace("*","").replace("`","").replace("_","")[:200])
+                if len(txt) > 90:
+                    pdf.multi_cell(0, 4, txt)
+                else:
+                    pdf.cell(0, 4.5, txt, ln=2)
+        out = pdf.output()
+        if isinstance(out, bytes):
+            pdf_bytes = out
+        elif isinstance(out, bytearray):
+            pdf_bytes = bytes(out)
+        elif isinstance(out, str):
+            pdf_bytes = out.encode("latin-1")
+        else:
+            pdf_bytes = bytes(out)
+        return (pdf_bytes, None) if len(pdf_bytes) > 100 else (b"", f"PDF too small: {len(pdf_bytes)} bytes")
+    except Exception as e:
+        return (b"", str(e))
 
-def _dl_pdf_link(pdf_data: bytes, filename: str):
-    if len(pdf_data) < 100:
-        return f'<button disabled style="...">PDF</button>'
-    b64 = base64.b64encode(pdf_data).decode()
-    return f'<a href="data:application/pdf;base64,{b64}" download="{_san(filename)}" style="display:inline-flex;align-items:center;gap:6px;background:rgba(26,58,92,0.8);backdrop-filter:blur(8px);color:#e8f4ff;border:1px solid rgba(42,80,128,0.5);border-radius:12px;padding:0.4rem 1rem;font-size:0.85rem;font-weight:500;text-decoration:none;transition:0.2s;cursor:pointer;">{ICON("download",14)} PDF</a>'
+def _dl_group(fn: str, fc: str, error: str = None):
+    pdf_fn = fn.replace(".md", ".pdf")
+    md_fn = fn
+    pdf_data, pdf_err = markdown_to_pdf(pdf_fn.replace(".md", "").replace("_", " "), fc)
+    parts = []
+    if pdf_data:
+        parts.append(_dl_link(pdf_data, pdf_fn, "PDF", "application/pdf", "download"))
+    parts.append(_dl_link(fc.encode(), md_fn, "MD", "text/markdown", "file-text"))
+    return " ".join(parts), pdf_err
 
 def darken(h, a=0.3):
     r, g, b = int(h[1:3],16), int(h[3:5],16), int(h[5:7],16)
@@ -220,9 +228,12 @@ S = {
 "ticket":('<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>'
  '<path d="M9 9h1"/><path d="M14 9h1"/><path d="M9 13h6"/>'),
 "route":'<circle cx="6" cy="19" r="3"/><circle cx="18" cy="5" r="3"/><path d="M6 19L18 5"/><path d="M6 16V6"/><path d="M18 8v10"/>',
-"building":('<rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/>'
+ "building":('<rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/>'
  '<line x1="8" y1="6" x2="10" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/>'
  '<line x1="14" y1="6" x2="16" y2="6"/><line x1="14" y1="10" x2="16" y2="10"/>'),
+"file-text":('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>'
+ '<polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>'
+ '<polyline points="10 9 9 9 8 9"/>'),
 }
 
 def ICON(name, size=20, anim=None, color=None):
@@ -990,16 +1001,10 @@ if lr and not st.session_state.trigger_generation:
         lr_jc = json.dumps({"destination": lr.get("to_city","?").split("(")[0].strip() if lr.get("to_city") else "?", "generated_at": datetime.now().isoformat(), "flight": lr.get("flight",""), "hotel": lr.get("hotel",""), "weather": lr.get("weather",""), "budget": lr.get("budget",""), "itinerary": lr.get("itinerary","")}, indent=2, default=str)
         st.download_button("JSON", data=lr_jc, file_name=lr_fn, mime="application/json", use_container_width=True)
     with c_pdf:
-        try:
-            lr_pdf = markdown_to_pdf(lr.get("fn","trip.md").replace(".md","").replace("_"," "), lr.get("fc",""))
-            pdf_ok = len(lr_pdf) > 100
-        except Exception as ex:
-            lr_pdf = b""
-            pdf_ok = False
-        if pdf_ok:
-            st.markdown(_dl_pdf_link(lr_pdf, lr.get("fn","trip.md").replace(".md",".pdf")), unsafe_allow_html=True)
-        else:
-            st.markdown(f'<span style="color:#4a6a85;font-size:0.82rem;">PDF unavailable</span>', unsafe_allow_html=True)
+        pdf_links, pdf_err = _dl_group(lr.get("fn","trip.md"), lr.get("fc",""))
+        if pdf_err:
+            st.caption(f"PDF: {pdf_err}")
+        st.markdown(pdf_links, unsafe_allow_html=True)
     with c_in:
         st.markdown(f"<div class='save-bar'>{ICON('folder',14)} <code>travel_plans/{lr.get('fn','')}</code></div>", unsafe_allow_html=True)
     st.markdown(
@@ -1212,11 +1217,10 @@ f"""<div class="metric-row anim-slide" style="margin-bottom:0.6rem">
                     }, indent=2, default=str)
                     st.download_button("JSON", data=jc, file_name=fj, mime="application/json", use_container_width=True)
                 with pdf_col:
-                    pdf_data = markdown_to_pdf(fn.replace(".md", "").replace("_", " "), fc)
-                    if len(pdf_data) > 100:
-                        st.markdown(_dl_pdf_link(pdf_data, fn.replace(".md", ".pdf")), unsafe_allow_html=True)
-                    else:
-                        st.markdown(f'<span style="color:#4a6a85;font-size:0.82rem;">PDF unavailable</span>', unsafe_allow_html=True)
+                    pdf_links, pdf_err = _dl_group(fn, fc)
+                    if pdf_err:
+                        st.caption(f"PDF: {pdf_err}")
+                    st.markdown(pdf_links, unsafe_allow_html=True)
                 with info_col:
                     st.markdown(f"<div class='save-bar'>{ICON('folder',14)} Saved — <code>travel_plans/{fn}</code></div>", unsafe_allow_html=True)
 
@@ -1348,16 +1352,10 @@ if st.session_state.approval_pending and st.session_state.pending_data:
             }, indent=2, default=str)
             st.download_button("JSON", data=jc, file_name=fj, mime="application/json", use_container_width=True)
         with pdf_col:
-            try:
-                pdf_data = markdown_to_pdf(fn.replace(".md", "").replace("_", " "), fc)
-                pdf_ok = len(pdf_data) > 100
-            except Exception:
-                pdf_data = b""
-                pdf_ok = False
-            if pdf_ok:
-                st.markdown(_dl_pdf_link(pdf_data, fn.replace(".md", ".pdf")), unsafe_allow_html=True)
-            else:
-                st.markdown(f'<span style="color:#4a6a85;font-size:0.82rem;">PDF unavailable</span>', unsafe_allow_html=True)
+            pdf_links, pdf_err = _dl_group(fn, fc)
+            if pdf_err:
+                st.caption(f"PDF: {pdf_err}")
+            st.markdown(pdf_links, unsafe_allow_html=True)
         with info_col:
             st.markdown(f"<div class='save-bar'>{ICON('folder',14)} Saved — <code>travel_plans/{fn}</code></div>", unsafe_allow_html=True)
 
